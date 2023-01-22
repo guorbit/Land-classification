@@ -16,7 +16,7 @@ label_maps = {
     0: np.array([0, 0, 0]),
 }
 NUM_CLASSES = len(label_maps.keys())
-IMAGE_SIZE = (64, 64)
+IMAGE_SIZE = (384, 384)
 SUB_REGION_SIZE = (4, 4)
 IMAGE_REGIONS = 0
 

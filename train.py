@@ -1,5 +1,5 @@
 from shape import read_images,IMAGE_SIZE,NUM_CLASSES
-from keras_segmentation.models.unet import vgg_unet
+from keras_segmentation.models.unet import vgg_unet 
 import os
 def create_model():
     model = vgg_unet(n_classes=NUM_CLASSES ,  input_height=IMAGE_SIZE[0], input_width=IMAGE_SIZE[1])
@@ -10,7 +10,7 @@ def train_model(model,images,masks):
         train_images =  images,
         train_annotations = masks,
         checkpoints_path = os.path.join("checkpoints","vgg_unet_1")
-         , epochs=10
+         , epochs=20
     )
     return model
 
