@@ -1,0 +1,1 @@
+MODEL_NAME = 'resnet50_fcn_32_1'
