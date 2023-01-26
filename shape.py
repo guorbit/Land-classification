@@ -2,6 +2,15 @@ import numpy as np
 import os
 from PIL import Image
 from tqdm import tqdm
+from constants import (
+    NUM_CLASSES,
+    LABEL_MAP,
+    MODELS,
+    MODEL_NAME,
+    ARCHIVE_DATA_PATH,
+    TRAINING_DATA_PATH,
+    VALIDATION_DATA_PATH,
+)
 
 
 # read all images from archive/train/ using PIL
@@ -16,9 +25,7 @@ label_maps = {
     0: np.array([0, 0, 0]),
 }
 NUM_CLASSES = len(label_maps.keys())
-IMAGE_SIZE = (384, 384)
-SUB_REGION_SIZE = (4, 4)
-IMAGE_REGIONS = 0
+IMAGE_SIZE = (0, 0)
 
 
 def read_images(path):
@@ -59,19 +66,14 @@ def read_images(path):
         ]
 
         print("Number of masks imported: " + str(len(mask_images)))
-        IMAGE_REGIONS = (
-            len(sat_images)
-            * (IMAGE_SIZE[0] * IMAGE_SIZE[1])
-            / (SUB_REGION_SIZE[0] * SUB_REGION_SIZE[1])
-        )
         return np.array(sat_images), np.array(mask_images)
 
 
 # original datashaping
 def export_images(images, masks, path):
     print("Exporting images to " + path)
-    os.makedirs(os.path.join(path,"x"))
-    os.makedirs(os.path.join(path,"y"))
+    os.makedirs(os.path.join(path, "x"))
+    os.makedirs(os.path.join(path, "y"))
     images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
     masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
 
@@ -79,8 +81,8 @@ def export_images(images, masks, path):
 
         img = Image.fromarray(images[i].astype("uint8"))
         mask = Image.fromarray(masks[i].astype("uint8"))
-        img.save(os.path.join(path,"x", str(i) + ".jpg"))
-        mask.save(os.path.join(path,"y", str(i) + ".png"))
+        img.save(os.path.join(path, "x", str(i) + ".jpg"))
+        mask.save(os.path.join(path, "y", str(i) + ".png"))
 
 
 def prepocess_mask_images(mask_images):
@@ -109,19 +111,30 @@ def preprocess_train_images(images):
 
     return images
 
-def split_read(path,val_percent):
-    images,masks = read_images(path)
+
+def split_read(path, val_percent):
+    images, masks = read_images(path)
     mask_images = prepocess_mask_images(masks)
-    export_images(images[:int(len(images)*val_percent)],mask_images[:int(len(mask_images)*val_percent)],"archive_resized/val/")
-    export_images(images[int(len(images)*val_percent):],mask_images[int(len(mask_images)*val_percent):],"archive_resized/train/")
+    export_images(
+        images[: int(len(images) * val_percent)],
+        mask_images[: int(len(mask_images) * val_percent)],
+        VALIDATION_DATA_PATH,
+    )
+    export_images(
+        images[int(len(images) * val_percent) :],
+        mask_images[int(len(mask_images) * val_percent) :],
+        TRAINING_DATA_PATH,
+    )
+
 
 if __name__ == "__main__":
+    IMAGE_SIZE = MODELS[MODEL_NAME]["image_size"]
     # read images
     if os.path.isdir("archive_resized"):
         print("Resized images already exist. Importing resized images...")
-        sat_images, mask_images = read_images("archive_resized/train/")
+        sat_images, mask_images = read_images(TRAINING_DATA_PATH)
     else:
-        sat_images, mask_images = split_read("archive/train/",0.2)
+        split_read(ARCHIVE_DATA_PATH, 0.2)
         # print("Resized images do not exist. Importing the original images...")
         # sat_images, mask_images = read_images("archive/train/")
 
