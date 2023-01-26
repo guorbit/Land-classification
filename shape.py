@@ -72,8 +72,8 @@ def export_images(images, masks, path):
     print("Exporting images to " + path)
     os.makedirs(os.path.join(path,"x"))
     os.makedirs(os.path.join(path,"y"))
-    images = images.reshape(803, IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
-    masks = masks.reshape(803, IMAGE_SIZE[0], IMAGE_SIZE[1])
+    images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
+    masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
 
     for i in tqdm(range(images.shape[0])):
 
@@ -109,6 +109,11 @@ def preprocess_train_images(images):
 
     return images
 
+def split_read(path,val_percent):
+    images,masks = read_images(path)
+    mask_images = prepocess_mask_images(masks)
+    export_images(images[:int(len(images)*val_percent)],mask_images[:int(len(mask_images)*val_percent)],"archive_resized/val/")
+    export_images(images[int(len(images)*val_percent):],mask_images[int(len(mask_images)*val_percent):],"archive_resized/train/")
 
 if __name__ == "__main__":
     # read images
@@ -116,11 +121,7 @@ if __name__ == "__main__":
         print("Resized images already exist. Importing resized images...")
         sat_images, mask_images = read_images("archive_resized/train/")
     else:
-        sat_images, mask_images = read_images("archive/train/")
-        mask_images = prepocess_mask_images(mask_images)
-
-        export_images(sat_images, mask_images, "archive_resized/train/")
-
+        sat_images, mask_images = split_read("archive/train/",0.2)
         # print("Resized images do not exist. Importing the original images...")
         # sat_images, mask_images = read_images("archive/train/")
 

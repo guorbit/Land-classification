@@ -1,1 +1,1 @@
-MODEL_NAME = 'resnet50_fcn_32_1'
+MODEL_NAME = 'vgg_unet_1'
