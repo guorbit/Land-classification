@@ -3,7 +3,8 @@ from keras_segmentation.models.segnet import vgg_segnet, resnet50_segnet, mobile
 from keras_segmentation.models.fcn import fcn_32_vgg, fcn_32_resnet50 , fcn_32_mobilenet
 import numpy as np
 MODEL_ITERATION = 2
-MODEL_NAME = 'vgg_segnet'
+MODEL_NAME = 'resnet50_unet'
+MODEL_FOLDER = 'models'
 
 ARCHIVE_DATA_PATH = 'archive/train/'
 
@@ -31,7 +32,7 @@ MODELS = {
     "vgg_segnet":{
         'model':vgg_segnet,
         'image_size':(384,384),
-        'output_size':(384,384)
+        'output_size':(192,192)
     },
     "vgg_fcn_32":{
         'model':fcn_32_vgg,
@@ -41,13 +42,13 @@ MODELS = {
     "resnet50_unet":{
         'model':resnet50_unet,
         'image_size':(384,384),
-        'output_size':(384,384)
+        'output_size':(192,192)
     }, # image size must be 192x192
     "resnet50_segnet":{
         
         'model':resnet50_segnet,
         'image_size':(384,384),
-        'output_size':(384,384)
+        'output_size':(192,192)
     },
     "resnet50_fcn_32":{
         'model':fcn_32_resnet50,

@@ -6,7 +6,7 @@ from keras_segmentation.models.segnet import (
     mobilenet_segnet,
 )
 from keras_segmentation.models.fcn import fcn_32_vgg, fcn_32_resnet50, fcn_32_mobilenet
-from constants import MODEL_NAME, MODELS, TRAINING_DATA_PATH, NUM_CLASSES, MODEL_ITERATION
+from constants import MODEL_NAME, MODELS, TRAINING_DATA_PATH, NUM_CLASSES, MODEL_ITERATION, MODEL_FOLDER
 import os
 
 
@@ -20,10 +20,12 @@ def create_model():
 
 
 def train_model(model, images, masks):
+    if not os.path.isdir(os.path.join("checkpoints", MODEL_NAME+"_"+str(MODEL_ITERATION))):
+        os.makedirs(os.path.join("checkpoints", MODEL_NAME+"_"+str(MODEL_ITERATION)))
     model.train(
         train_images=images,
         train_annotations=masks,
-        checkpoints_path=os.path.join("checkpoints", MODEL_NAME+"_"+str(MODEL_ITERATION)),
+        checkpoints_path=os.path.join("checkpoints", MODEL_NAME+"_"+str(MODEL_ITERATION), MODEL_NAME+"_"+str(MODEL_ITERATION)),
         epochs=20,
     )
     return model
@@ -37,4 +39,6 @@ if __name__ == "__main__":
 
     model = create_model()
     model = train_model(model, image_path, mask_path)
-    model.save(MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5")
+    if not os.path.isdir(MODEL_FOLDER):
+        os.mkdir(MODEL_FOLDER)
+    model.save(os.path.join(MODEL_FOLDER,MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5"))

@@ -2,13 +2,14 @@ from shape import read_images, IMAGE_SIZE
 from tensorflow.keras.models import load_model
 from tensorflow.keras import backend as K
 from matplotlib import pyplot as plt
-from constants import MODEL_NAME, MODELS, NUM_CLASSES,VALIDATION_DATA_PATH, MODEL_ITERATION, LABEL_MAP
+from constants import MODEL_NAME, MODELS, NUM_CLASSES,VALIDATION_DATA_PATH, MODEL_ITERATION, LABEL_MAP, MODEL_FOLDER
 import numpy as np
+import os
 
 if __name__ == "__main__":
 
     print("Loading model " + MODEL_NAME+"_"+str(MODEL_ITERATION))
-    model = load_model(MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5")
+    model = load_model(os.path.join(MODEL_FOLDER,MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5"))
 
     images,m = read_images(VALIDATION_DATA_PATH + "x/")
     i,masks = read_images(VALIDATION_DATA_PATH + "y/")
