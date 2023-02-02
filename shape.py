@@ -12,6 +12,7 @@ from constants import (
     VALIDATION_DATA_PATH,
 )
 import tensorflow as tf
+from augmentation import augment_images
 
 
 # read all images from archive/train/ using PIL
@@ -121,8 +122,16 @@ def preprocess_train_images(images):
 
 
 def split_read(path, val_percent):
+    # read in images from archive
     images, masks = read_images(path)
     mask_images = prepocess_mask_images(masks)
+
+    #send images through the augmentation pipeline
+    augmented_images, augmented_masks = augment_images(images,mask_images)
+    images = np.concatenate(images,augmented_images)
+    masks = np.concatenate(masks,augmented_masks)
+
+    # split into training and validation
     export_images(
         images[: int(len(images) * val_percent)],
         mask_images[: int(len(mask_images) * val_percent)],
