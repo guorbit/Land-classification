@@ -165,23 +165,31 @@ def split_read(path, val_percent):
     # reset_image_shapes
     images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
     masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
+    # split into training and validation
+    validation_images = images[: int(len(images) * val_percent)]
+    validation_masks = masks[: int(len(masks) * val_percent)]
+
+    training_images = images[int(len(images) * val_percent) :]
+    training_masks = masks[int(len(masks) * val_percent) :]
+
 
     # send images through the augmentation pipeline
-    augmented_images, augmented_masks = augment_images(images, masks)
-    print(images.shape)
+    augmented_images, augmented_masks = augment_images(training_images, training_masks)
+    print(training_images.shape)
     print(augmented_images.shape)
-    images = np.concatenate((images, augmented_images))
-    masks = np.concatenate((masks, augmented_masks))
+    training_images = np.concatenate((training_images, augmented_images))
+    print(training_images.shape)
+    training_masks = np.concatenate((training_masks, augmented_masks))
 
-    # split into training and validation
+    
     export_images(
-        images[: int(len(images) * val_percent)],
-        masks[: int(len(masks) * val_percent)],
+        validation_images,
+        validation_masks,
         VALIDATION_DATA_PATH,
     )
     export_images(
-        images[int(len(images) * val_percent) :],
-        masks[int(len(masks) * val_percent) :],
+        training_images,
+        training_masks,
         TRAINING_DATA_PATH,
     )
 
