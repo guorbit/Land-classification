@@ -8,8 +8,8 @@ from keras_segmentation.models.fcn import fcn_32_vgg, fcn_32_resnet50, fcn_32_mo
 import numpy as np
 
 
-MODEL_ITERATION = 2
-MODEL_NAME = "resnet50_unet"
+MODEL_ITERATION = 4
+MODEL_NAME = "vgg_fcn_32"
 MODEL_FOLDER = "models"
 
 ARCHIVE_DATA_PATH = "archive/train/"
@@ -43,7 +43,7 @@ MODELS = {
     "vgg_fcn_32": {
         "model": fcn_32_vgg,
         "image_size": (384, 384),
-        "output_size": (384, 384),
+        "output_size": (416, 416),
     },
     "resnet50_unet": {
         "model": resnet50_unet,

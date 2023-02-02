@@ -1,5 +1,7 @@
 from tensorflow import keras
 import tensorflow as tf
+import numpy as np
+from tqdm import tqdm
 
 
 def generate_common_pipeline(seed):
@@ -61,12 +63,17 @@ def augment_images(images, masks):
     numpy ndarray: the augmented images
     numpy ndarray: the augmented images' masks
     """
-    images = images
-    masks = masks
-
-    seed = (1, 0)
-    image_pipeline, mask_pipeline = generate_image_pipeline(seed)
-    augmented_images = image_pipeline(images)
-    augmented_masks = mask_pipeline(masks)
-
-    return augmented_images.numpy(), augmented_masks.numpy()
+    tf.get_logger().setLevel('ERROR')
+    image_store = []
+    mask_store = []
+    for i in tqdm(range(0, 3)):
+       
+        seed = (i, 0)
+        image_pipeline, mask_pipeline = generate_image_pipeline(seed)
+        augmented_images = image_pipeline(images)
+        augmented_masks = mask_pipeline(masks)
+        image_store.append(augmented_images)
+        mask_store.append(augmented_masks)
+    augmented_images = np.concatenate(image_store)
+    augmented_masks = np.concatenate(mask_store)
+    return augmented_images, augmented_masks
