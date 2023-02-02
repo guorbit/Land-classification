@@ -38,20 +38,26 @@ def extract_num(image_name):
        
 
 def read_images(path):
-    if (len(path.split("/")[0].split("_")) > 1 and path.split("/")[0].split("_")[1] == "resized"):
-        path_image=path+"x/"
-        path_mask=path+"y/"
+    """
+    This function takes a path and reads images, and masks in from the path
 
-        if READ_LIMIT:
-            image_list=sorted(os.listdir(path_image)[:int(READ_LIMIT)],key=extract_num)
-            mask_list=sorted(os.listdir(path_mask)[:int(READ_LIMIT)],key=extract_num)
-        else:
-            image_list=sorted(os.listdir(path_image),key=extract_num)
-            mask_list=sorted(os.listdir(path_mask),key=extract_num)
-        
-        #Read images
-        print("Reading images from " + path_image)
-        sat_images = [np.array(Image.open(path_image+f)) for f in tqdm(image_list) if f.endswith(".jpg")]
+    Parameters:
+    path (string): the path to the training images
+
+    Returns:
+    numpy ndarray: the resized satellite images
+    numpy ndarray: the resized mask images
+    """
+    if (
+        len(path.split("/")[0].split("_")) > 1
+        and path.split("/")[0].split("_")[1] == "resized"
+    ):
+        print("Reading images from " + path)
+        sat_images = [
+            np.array(Image.open(path + f))
+            for f in tqdm(os.listdir(path))
+            if f.endswith(".jpg")
+        ]
         print("Number of images imported: " + str(len(sat_images)))
 
         #Read masks
@@ -80,11 +86,21 @@ def read_images(path):
 
 # original datashaping
 def export_images(images, masks, path):
+    """
+    This function takes a path and exports, the input images, and masks there
+
+    Parameters:
+    images (numpy ndarray): the satellite images
+    masks (numpy ndarray): the masks for the images
+    path (string): target directory, where the images have to be exported
+
+    Returns:
+    None: The main purpose of the function is to export
+
+    """
     print("Exporting images to " + path)
     os.makedirs(os.path.join(path, "x"))
     os.makedirs(os.path.join(path, "y"))
-    # images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
-    # masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
 
     for i in tqdm(range(images.shape[0])):
         img = Image.fromarray(images[i].astype("uint8"))
@@ -94,7 +110,7 @@ def export_images(images, masks, path):
         mask.save(os.path.join(path, "y", str(i) + ".png"))
 
 
-def prepocess_mask_images(mask_images):
+def preprocess_mask_images(mask_images):
     mask_images = np.array(mask_images)
     mask_images = mask_images / 255
     
@@ -116,30 +132,56 @@ def preprocess_sat_images(sat_images):
 
 
 def preprocess_train_images(images):
+    """
+    This function takes a numpy nd array and preprocesses it
+
+    Parameters:
+    images (numpy ndarray): the satellite images
+
+    Returns:
+    numpy ndarray: the preprocessed images
+    """
+
     images = np.array(images)
     images = images / 255
     return images
 
 
 def split_read(path, val_percent):
-    # read in images from archive
-    images, masks = read_images(path)
-    mask_images = prepocess_mask_images(masks)
+    """
+    The function takes 2 parameters
 
-    #send images through the augmentation pipeline
-    augmented_images, augmented_masks = augment_images(images,mask_images)
-    images = np.concatenate(images,augmented_images)
-    masks = np.concatenate(masks,augmented_masks)
+    Parameters:
+    path (string): the path where the images are supposed to be read in from
+    val_percent (float - <1): the percentage from which the data is split into
+                              validation and training, the float specifies the size of the validation dataset
+
+    Returns:
+    None: The functions main purpose is file export into the predifined paths
+    """
+    images, masks = read_images(path)
+    masks = preprocess_mask_images(masks)
+
+    # reset_image_shapes
+    images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
+    masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
+
+    # send images through the augmentation pipeline
+    augmented_images, augmented_masks = augment_images(images, masks)
+    print(images.shape)
+    print(augmented_images.shape)
+    images = np.concatenate((images, augmented_images))
+    masks = np.concatenate((masks, augmented_masks))
 
     # split into training and validation
     export_images(
         images[: int(len(images) * val_percent)],
-        mask_images[: int(len(mask_images) * val_percent)],
+        masks[: int(len(masks) * val_percent)],
         VALIDATION_DATA_PATH,
     )
     export_images(
         images[int(len(images) * val_percent) :],
-        mask_images[int(len(mask_images) * val_percent) :],
+        masks[int(len(masks) * val_percent) :],
         TRAINING_DATA_PATH,
     )
 
