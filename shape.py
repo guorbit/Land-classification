@@ -11,6 +11,7 @@ from constants import (
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
 )
+import tensorflow as tf
 
 
 # read all images from archive/train/ using PIL
@@ -128,22 +129,23 @@ def split_read(path, val_percent):
 
 
 if __name__ == "__main__":
-    IMAGE_SIZE = MODELS[MODEL_NAME]["image_size"]
-    # read images
-    if os.path.isdir("archive_resized"):
-        print("Resized images already exist. Importing resized images...")
-        sat_images, mask_images = read_images(TRAINING_DATA_PATH)
-    else:
-        split_read(ARCHIVE_DATA_PATH, 0.2)
-        # print("Resized images do not exist. Importing the original images...")
-        # sat_images, mask_images = read_images("archive/train/")
+    with tf.device('/device:GPU:0'):
+        IMAGE_SIZE = MODELS[MODEL_NAME]["image_size"]
+        # read images
+        if os.path.isdir("archive_resized"):
+            print("Resized images already exist. Importing resized images...")
+            sat_images, mask_images = read_images(TRAINING_DATA_PATH)
+        else:
+            split_read(ARCHIVE_DATA_PATH, 0.2)
+            # print("Resized images do not exist. Importing the original images...")
+            # sat_images, mask_images = read_images("archive/train/")
 
-        # # preprocess images
-        # sat_images = preprocess_sat_images(sat_images)
-        # mask_images = prepocess_mask_images(mask_images)
+            # # preprocess images
+            # sat_images = preprocess_sat_images(sat_images)
+            # mask_images = prepocess_mask_images(mask_images)
 
-        # # separate labels
-        # mask_images = separate_mask_labels(mask_images)
-        # overlayed_images = overlap_image_masks(sat_images, mask_images)
-        # print(overlayed_images[0, 0])
-        # export_images(overlayed_images, "archive_resized/train/")
+            # # separate labels
+            # mask_images = separate_mask_labels(mask_images)
+            # overlayed_images = overlap_image_masks(sat_images, mask_images)
+            # print(overlayed_images[0, 0])
+            # export_images(overlayed_images, "archive_resized/train/")
