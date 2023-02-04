@@ -10,6 +10,7 @@ from constants import (
     ARCHIVE_DATA_PATH,
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
+
 )
 import tensorflow as tf
 
@@ -59,6 +60,7 @@ def read_images(path):
         print("Number of images imported: " + str(len(mask_images)))
 
     else:
+        IMAGE_SIZE = MODELS[MODEL_NAME]["image_size"]        
         if READ_LIMIT:
             image_list=sorted(os.listdir(path)[:int(READ_LIMIT)],key=extract_num)
         else:

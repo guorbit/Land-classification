@@ -24,8 +24,8 @@ class ModelGenerator():
     def summary(self):
         return self.model.summary()
 
-    def train(self):
-        self.model.fit()
+    def fit(self, x, y, epochs, batch_size):
+        self.model.fit(x,y,epochs=epochs, batch_size=batch_size)
 
     def predict(self):
         self.model.predict()
@@ -33,8 +33,8 @@ class ModelGenerator():
     def evaluate(self):
         self.model.evaluate()
 
-    def compile(self,loss_fn):
-        self.model.compile(optimizer = "adam",loss = loss_fn, metrics = ["accuracy"])
+    def compile(self,loss_fn, optimizer="adam", metrics=["accuracy"]):
+        self.model.compile(optimizer = optimizer,loss = loss_fn, metrics = metrics)
 
 
 class VGG16_UNET(ModelGenerator):

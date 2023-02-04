@@ -2,14 +2,12 @@ from keras_segmentation.models.unet import vgg_unet, resnet50_unet, mobilenet_un
 from keras_segmentation.models.segnet import vgg_segnet, resnet50_segnet, mobilenet_segnet
 from keras_segmentation.models.fcn import fcn_32_vgg, fcn_32_resnet50 , fcn_32_mobilenet
 import numpy as np
-MODEL_ITERATION = 2
-MODEL_NAME = 'vgg_unet'
-MODEL_FOLDER = 'models'
+
 
 ARCHIVE_DATA_PATH = 'archive/train/'
 
 MODEL_ITERATION = 4
-MODEL_NAME = "vgg_fcn_32"
+MODEL_NAME = "unknown"
 MODEL_FOLDER = "exported_models"
 MODEL_LIBRARY = "models"
 
@@ -76,5 +74,9 @@ MODELS = {
         'model':fcn_32_mobilenet,
         'image_size':(384,384),
         'output_size':(384,384)
+    },
+    "unknown":{
+        'model':None,
+        'image_size':(512,512),
     }
 }
