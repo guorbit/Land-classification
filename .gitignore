@@ -130,7 +130,7 @@ dmypy.json
 /archive/
 /archive_resized/
 /checkpoints/
-/models/
+/exported_models/
 archive.lnk
 
 colab_notebook.ipynb
