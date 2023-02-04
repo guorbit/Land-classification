@@ -1,5 +1,7 @@
-from constructor import ModelGenerator
+from constructor import ModelGenerator, VGG16_UNET
 
 if __name__ == "__main__":
-    model = ModelGenerator("test", (256,256,3), (256,256,3), 2)
+    model = VGG16_UNET((512,512,3), 2)
     print(model.name)
+    model.create_model()
+    print(model.summary())
