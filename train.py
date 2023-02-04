@@ -26,8 +26,12 @@ def train_model(model, images, masks):
     model.train(
         train_images=images,
         train_annotations=masks,
-        checkpoints_path=os.path.join("checkpoints", MODEL_NAME+"_"+str(MODEL_ITERATION), MODEL_NAME+"_"+str(MODEL_ITERATION)),
-        epochs=20,
+        checkpoints_path=os.path.join(
+            "checkpoints",
+            MODEL_NAME + "_" + str(MODEL_ITERATION),
+            MODEL_NAME + "_" + str(MODEL_ITERATION),
+        ),
+        epochs=5,
     )
     return model
 

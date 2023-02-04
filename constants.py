@@ -8,8 +8,15 @@ MODEL_FOLDER = 'models'
 
 ARCHIVE_DATA_PATH = 'archive/train/'
 
-TRAINING_DATA_PATH = 'archive_resized/train/'
-VALIDATION_DATA_PATH = 'archive_resized/val/'
+MODEL_ITERATION = 4
+MODEL_NAME = "vgg_fcn_32"
+MODEL_FOLDER = "exported_models"
+MODEL_LIBRARY = "models"
+
+ARCHIVE_DATA_PATH = "archive/train/"
+
+TRAINING_DATA_PATH = "archive_resized/train/"
+VALIDATION_DATA_PATH = "archive_resized/val/"
 
 NUM_CLASSES = 7
 
