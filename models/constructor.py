@@ -33,6 +33,9 @@ class ModelGenerator():
     def evaluate(self):
         self.model.evaluate()
 
+    def compile(self,loss_fn):
+        self.model.compile(optimizer = "adam",loss = loss_fn, metrics = ["accuracy"])
+
 
 class VGG16_UNET(ModelGenerator):
 
@@ -62,7 +65,9 @@ class VGG16_UNET(ModelGenerator):
 
         #output
         outputs = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)
+        
         model = Model(inputs, outputs, name="VGG16_U-Net")
+
         self.model = model
 
     def conv_block(self,input, num_filters):
@@ -81,3 +86,5 @@ class VGG16_UNET(ModelGenerator):
         x = Concatenate()([x, skip_features])
         x = self.conv_block(x, num_filters)
         return x
+    
+
