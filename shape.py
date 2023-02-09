@@ -12,6 +12,7 @@ from constants import (
     VALIDATION_DATA_PATH,
 
 )
+from shape_encoder import ImagePreprocessor
 import tensorflow as tf
 
 
@@ -125,6 +126,8 @@ def preprocess_train_images(images):
 def split_read(path, val_percent):
     images, masks = read_images(path)
     mask_images = prepocess_mask_images(masks)
+    
+
     export_images(
         images[: int(len(images) * val_percent)],
         mask_images[: int(len(mask_images) * val_percent)],
