@@ -3,7 +3,7 @@ from keras_segmentation.models.segnet import vgg_segnet, resnet50_segnet, mobile
 from keras_segmentation.models.fcn import fcn_32_vgg, fcn_32_resnet50 , fcn_32_mobilenet
 import numpy as np
 MODEL_ITERATION = 2
-MODEL_NAME = 'resnet50_unet'
+MODEL_NAME = 'vgg_unet'
 MODEL_FOLDER = 'models'
 
 ARCHIVE_DATA_PATH = 'archive/train/'

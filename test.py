@@ -1,11 +1,12 @@
 from shape import read_images, IMAGE_SIZE
-from tensorflow.keras.models import load_model
-from tensorflow.keras import backend as K
+from keras.models import load_model
+from keras import backend as K
 from matplotlib import pyplot as plt
 from constants import MODEL_NAME, MODELS, NUM_CLASSES,VALIDATION_DATA_PATH, MODEL_ITERATION, LABEL_MAP, MODEL_FOLDER
 import numpy as np
 import os
 import tensorflow as tf
+
 if __name__ == "__main__":
     with tf.device('/device:GPU:0'):
 
@@ -14,8 +15,7 @@ if __name__ == "__main__":
 
         images,m = read_images(VALIDATION_DATA_PATH + "x/")
         i,masks = read_images(VALIDATION_DATA_PATH + "y/")
-
-
+        print("SHAPE  - - - - - - - ",images.shape)
         prediction = model.predict(images)
         new_mask = np.zeros((masks.shape[0], masks.shape[1], masks.shape[2], 3))
         print(prediction.shape)

@@ -28,22 +28,27 @@ label_maps = {
 NUM_CLASSES = len(label_maps.keys())
 IMAGE_SIZE = (0, 0)
 
-
+def extract_num(image_name):
+        return int(image_name.split('.')[0])
 def read_images(path):
+    
+    sorted_images=sorted(os.listdir(path),key=extract_num)
+    image_list=sorted_images#[:READ_LIMIT]
+    #image_list=os.listdir(path)
+    print(image_list)
+    #nums=[f for f in image_list if f.endswith(".jpg")]
+    #print(len(nums),nums)
+    
     if (
         len(path.split("/")[0].split("_")) > 1
         and path.split("/")[0].split("_")[1] == "resized"
     ):
         print("Reading images from " + path)
-        sat_images = [
-            np.array(Image.open(path + f))
-            for f in tqdm(os.listdir(path))
-            if f.endswith(".jpg")
-        ]
+        sat_images = [np.array(Image.open(path+f)) for f in tqdm(image_list) if f.endswith(".jpg")]
         print("Number of images imported: " + str(len(sat_images)))
         mask_images = [
             np.array(Image.open(path + f))
-            for f in tqdm(os.listdir(path))
+            for f in tqdm(image_list)
             if f.endswith(".png")
         ]
 
@@ -55,14 +60,14 @@ def read_images(path):
         print("Reading images from " + path)
         sat_images = [
             np.array(Image.open(path + f).resize(IMAGE_SIZE))
-            for f in tqdm(os.listdir(path))
+            for f in tqdm(image_list)
             if f.endswith(".jpg")
         ]
         print("Number of images imported: " + str(len(sat_images)))
         print("\nReading masks from " + path)
         mask_images = [
             np.array(Image.open(path + f).resize(IMAGE_SIZE))
-            for f in tqdm(os.listdir(path))
+            for f in tqdm(image_list)
             if f.endswith(".png")
         ]
 
@@ -75,8 +80,8 @@ def export_images(images, masks, path):
     print("Exporting images to " + path)
     os.makedirs(os.path.join(path, "x"))
     os.makedirs(os.path.join(path, "y"))
-    images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
-    masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
+    # images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
+    # masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
 
     for i in tqdm(range(images.shape[0])):
 
@@ -95,14 +100,14 @@ def prepocess_mask_images(mask_images):
         + mask_images[:, :, :, 2] * 4
     )
     mask_images = np.where(mask_images > 0, mask_images - 1, mask_images)
-    mask_images = mask_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1])
+   # mask_images = mask_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1])
     return mask_images
 
 
 def preprocess_sat_images(sat_images):
     sat_images = np.array(sat_images)
     # sat_images = sat_images / 255
-    sat_images = sat_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1], 3)
+    #sat_images = sat_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1], 3)
     return sat_images
 
 
@@ -130,6 +135,7 @@ def split_read(path, val_percent):
 
 if __name__ == "__main__":
     with tf.device('/device:GPU:0'):
+        #READ_LIMIT =int(input("How many images do you want to read?"))
         IMAGE_SIZE = MODELS[MODEL_NAME]["image_size"]
         # read images
         if os.path.isdir("archive_resized"):
