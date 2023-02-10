@@ -24,8 +24,8 @@ class ModelGenerator():
     def summary(self):
         return self.model.summary()
 
-    def fit(self, x, y, epochs, batch_size):
-        self.model.fit(x,y,epochs=epochs, batch_size=batch_size)
+    def fit(self, *args, **kwargs):
+        self.model.fit(*args, **kwargs)
 
     def predict(self):
         self.model.predict()

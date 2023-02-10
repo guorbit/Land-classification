@@ -1,11 +1,16 @@
 from models.constructor import ModelGenerator, VGG16_UNET
-from models.loss_constructor import LossConstructor
 import numpy as np
 from shape import read_images
 from constants import TRAINING_DATA_PATH
 from shape_encoder import ImagePreprocessor
+from models.loss_constructor import Semantic_loss_functions
 import tensorflow as tf
-def focal_loss(gamma=2., alpha=4.):
+from tensorflow.keras.losses import categorical_crossentropy
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import os
+
+
+def focal_loss(gamma=2.0, alpha=4.0):
 
     gamma = float(gamma)
     alpha = float(alpha)
@@ -30,36 +35,66 @@ def focal_loss(gamma=2., alpha=4.):
         Returns:
             [tensor] -- loss.
         """
-        epsilon = 1.e-9
+        epsilon = 1.0e-9
         y_true = tf.convert_to_tensor(y_true, tf.float32)
         y_pred = tf.convert_to_tensor(y_pred, tf.float32)
 
         model_out = tf.add(y_pred, epsilon)
         ce = tf.multiply(y_true, -tf.log(model_out))
-        weight = tf.multiply(y_true, tf.pow(tf.subtract(1., model_out), gamma))
+        weight = tf.multiply(y_true, tf.pow(tf.subtract(1.0, model_out), gamma))
         fl = tf.multiply(alpha, tf.multiply(weight, ce))
         reduced_fl = tf.reduce_max(fl, axis=1)
         return tf.reduce_mean(reduced_fl)
+
     return focal_loss_fixed
+
 
 if __name__ == "__main__":
     model = VGG16_UNET((512, 512, 3), 2)
     print(model.name)
     model.create_model()
     print(model.summary())
-    # loss_fn = LossConstructor.weighted_cce(7,np.array([1,1,1,1,1,1,1]))
-    loss_fn = focal_loss()
+    loss_object = Semantic_loss_functions()
+    loss_fn = loss_object.unet3p_hybrid_loss
+    # loss_fn =
 
     model.compile(loss_fn)
-    images, y = read_images(TRAINING_DATA_PATH + "x/")
-    x, masks = read_images(TRAINING_DATA_PATH + "y/")
+    # images, y = read_images(os.path.join(TRAINING_DATA_PATH , "x", "img")+os.sep)
+    # x, masks = read_images(os.path.join(TRAINING_DATA_PATH , "y", "img")+os.sep)
+
+    seed = 909  # (IMPORTANT) to transform image and corresponding mask with same augmentation parameter.
+    image_datagen = ImageDataGenerator(
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+    )  # custom fuction for each image you can use resnet one too.
+    mask_datagen = ImageDataGenerator(
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+    )  # to make mask as feedable formate (256,256,1)
+
+    image_generator = image_datagen.flow_from_directory(
+        os.path.join(TRAINING_DATA_PATH, "x"),
+        class_mode=None,
+        seed=seed,
+        batch_size=2,
+        target_size=(512, 512),
+    )
+
+    mask_generator = mask_datagen.flow_from_directory(
+        os.path.join(TRAINING_DATA_PATH, "y"),
+        class_mode=None,
+        seed=seed,
+        batch_size=2,
+        target_size=(512, 512),
+        color_mode = 'grayscale'
+    )
+
+    train_generator = zip(image_generator, mask_generator)
 
     # convert masks to one hot encoded images
-    preprocessor = ImagePreprocessor(masks)
-    preprocessor.onehot_encode()
-    masks = preprocessor.get_encoded_images()
-    print(masks.shape)
- 
-    model.fit(images, masks, epochs=1, batch_size=2)
+    # preprocessor = ImagePreprocessor(masks)
+    # preprocessor.onehot_encode()
+    # masks = preprocessor.get_encoded_images()
+    # print(masks.shape)
 
-
+    model.fit(train_generator, epochs=1, batch_size=2)
