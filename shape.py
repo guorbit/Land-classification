@@ -83,17 +83,16 @@ def read_images(path):
 # original datashaping
 def export_images(images, masks, path):
     print("Exporting images to " + path)
-    os.makedirs(os.path.join(path, "x"))
-    os.makedirs(os.path.join(path, "y"))
-    # images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
-    # masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
+    os.makedirs(os.path.join(path, "x", "img"))
+    os.makedirs(os.path.join(path, "y", "img"))
+   
+ 
 
     for i in tqdm(range(images.shape[0])):
         img = Image.fromarray(images[i].astype("uint8"))
         mask = Image.fromarray(masks[i].astype("uint8"))
-
-        img.save(os.path.join(path, "x", str(i) + ".jpg"))
-        mask.save(os.path.join(path, "y", str(i) + ".png"))
+        img.save(os.path.join(path, "x",'img', str(i) + ".jpg"))
+        mask.save(os.path.join(path, "y",'img', str(i) + ".png"))
 
 
 def prepocess_mask_images(mask_images):
