@@ -2,19 +2,18 @@ from keras_segmentation.models.unet import vgg_unet, resnet50_unet, mobilenet_un
 from keras_segmentation.models.segnet import vgg_segnet, resnet50_segnet, mobilenet_segnet
 from keras_segmentation.models.fcn import fcn_32_vgg, fcn_32_resnet50 , fcn_32_mobilenet
 import numpy as np
+import os
 
 
-ARCHIVE_DATA_PATH = 'archive/train/'
+ARCHIVE_DATA_PATH = os.path.join("archive", "train")
 
 MODEL_ITERATION = 4
 MODEL_NAME = "unknown"
 MODEL_FOLDER = "exported_models"
 MODEL_LIBRARY = "models"
 
-ARCHIVE_DATA_PATH = "archive/train/"
-
-TRAINING_DATA_PATH = "archive_resized/train/"
-VALIDATION_DATA_PATH = "archive_resized/val/"
+TRAINING_DATA_PATH = os.path.join("archive_resized", "train")
+VALIDATION_DATA_PATH = os.path.join("archive_resized", "val")
 
 NUM_CLASSES = 7
 

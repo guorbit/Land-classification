@@ -1,12 +1,13 @@
 from models.constructor import ModelGenerator, VGG16_UNET
 import numpy as np
 from shape import read_images
-from constants import TRAINING_DATA_PATH
+from constants import TRAINING_DATA_PATH, NUM_CLASSES
 from shape_encoder import ImagePreprocessor
 from models.loss_constructor import Semantic_loss_functions
 import tensorflow as tf
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from models.flowreader import FlowGenerator
 import os
 
 
@@ -55,46 +56,30 @@ if __name__ == "__main__":
     model.create_model()
     print(model.summary())
     loss_object = Semantic_loss_functions()
-    loss_fn = loss_object.unet3p_hybrid_loss
+    loss_fn = loss_object.basnet_hybrid_loss
     # loss_fn =
 
     model.compile(loss_fn)
     # images, y = read_images(os.path.join(TRAINING_DATA_PATH , "x", "img")+os.sep)
     # x, masks = read_images(os.path.join(TRAINING_DATA_PATH , "y", "img")+os.sep)
 
-    seed = 909  # (IMPORTANT) to transform image and corresponding mask with same augmentation parameter.
-    image_datagen = ImageDataGenerator(
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-    )  # custom fuction for each image you can use resnet one too.
-    mask_datagen = ImageDataGenerator(
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-    )  # to make mask as feedable formate (256,256,1)
-
-    image_generator = image_datagen.flow_from_directory(
-        os.path.join(TRAINING_DATA_PATH, "x"),
-        class_mode=None,
-        seed=seed,
-        batch_size=2,
-        target_size=(512, 512),
-    )
-
-    mask_generator = mask_datagen.flow_from_directory(
-        os.path.join(TRAINING_DATA_PATH, "y"),
-        class_mode=None,
-        seed=seed,
-        batch_size=2,
-        target_size=(512, 512),
-        color_mode = 'grayscale'
-    )
-
-    train_generator = zip(image_generator, mask_generator)
-
+   
     # convert masks to one hot encoded images
     # preprocessor = ImagePreprocessor(masks)
     # preprocessor.onehot_encode()
     # masks = preprocessor.get_encoded_images()
     # print(masks.shape)
+    batch_size = 2
+    generator = FlowGenerator(
+        os.path.join(TRAINING_DATA_PATH, "x"),
+        os.path.join(TRAINING_DATA_PATH, "y"),
+        batch_size=batch_size,
+        image_size=(512, 512),
+        shuffle=True,
+        num_classes=NUM_CLASSES,
+    )
+    train_generator = generator.get_generator()
+    dataset_size = generator.get_dataset_size()
+    print(dataset_size)
 
-    model.fit(train_generator, epochs=1, batch_size=2)
+    model.fit(train_generator, epochs=1, batch_size=batch_size, steps_per_epoch=dataset_size // batch_size)
