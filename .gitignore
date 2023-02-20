@@ -131,3 +131,7 @@ dmypy.json
 /archive_resized/
 /checkpoints/
 /models/
+archive.lnk
+
+colab_notebook.ipynb
+
