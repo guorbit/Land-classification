@@ -5,7 +5,7 @@ from constants import TRAINING_DATA_PATH, NUM_CLASSES
 from shape_encoder import ImagePreprocessor
 from models.loss_constructor import Semantic_loss_functions
 import tensorflow as tf
-from tensorflow.keras.losses import categorical_crossentropy
+from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from models.flowreader import FlowGenerator
 import os
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     model.create_model()
     print(model.summary())
     loss_object = Semantic_loss_functions()
-    loss_fn = loss_object.basnet_hybrid_loss
+    loss_fn = loss_object.dice_loss
     # loss_fn =
 
     model.compile(loss_fn)
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     # preprocessor.onehot_encode()
     # masks = preprocessor.get_encoded_images()
     # print(masks.shape)
-    batch_size = 2
+    batch_size = 8
     generator = FlowGenerator(
         os.path.join(TRAINING_DATA_PATH, "x"),
         os.path.join(TRAINING_DATA_PATH, "y"),
