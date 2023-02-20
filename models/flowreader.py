@@ -7,10 +7,10 @@ class FlowGenerator:
         self,
         image_path,
         mask_path,
-        batch_size,
         image_size,
         num_classes,
         shuffle=True,
+        batch_size = 32,
   
     ):
         """

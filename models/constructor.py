@@ -82,9 +82,10 @@ class VGG16_UNET(ModelGenerator):
         return x
     
     def decoder_block(self,input, skip_features, num_filters):
-        x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
+        x = self.conv_block(input, num_filters)
+        x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(x)
         x = Concatenate()([x, skip_features])
-        x = self.conv_block(x, num_filters)
+        
         return x
     
 
