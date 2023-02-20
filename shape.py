@@ -69,12 +69,12 @@ def read_images(path):
         
         #Read images
         print("Reading images from " + path)
-        sat_images = [np.array(Image.open(path + f).resize(IMAGE_SIZE)) for f in tqdm(image_list) if f.endswith(".jpg")]
+        sat_images = [np.array(Image.open(os.path.join(path,  f)).resize(IMAGE_SIZE)) for f in tqdm(image_list) if f.endswith(".jpg")]
         print("Number of images imported: " + str(len(sat_images)))
         
         #Read masks
         print("\nReading masks from " + path)
-        mask_images = [np.array(Image.open(path + f).resize(IMAGE_SIZE))for f in tqdm(image_list) if f.endswith(".png")]
+        mask_images = [np.array(Image.open(os.path.join(path,  f)).resize(IMAGE_SIZE))for f in tqdm(image_list) if f.endswith(".png")]
         print("Number of masks imported: " + str(len(mask_images)))
 
     return np.array(sat_images), np.array(mask_images)
