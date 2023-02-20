@@ -28,46 +28,53 @@ label_maps = {
 NUM_CLASSES = len(label_maps.keys())
 IMAGE_SIZE = (0, 0)
 
+def extract_num(image_name):
+    # extract number from image name
+        if os.path.isdir("archive_resized"):
+            return int(image_name.split(".")[0])
+        else:
+            return int(image_name.split("_")[0])
+       
 
 def read_images(path):
-    if (
-        len(path.split("/")[0].split("_")) > 1
-        and path.split("/")[0].split("_")[1] == "resized"
-    ):
-        print("Reading images from " + path)
-        sat_images = [
-            np.array(Image.open(path + f))
-            for f in tqdm(os.listdir(path))
-            if f.endswith(".jpg")
-        ]
+    if (len(path.split("/")[0].split("_")) > 1 and path.split("/")[0].split("_")[1] == "resized"):
+        path_image=path+"x/"
+        path_mask=path+"y/"
+
+        if READ_LIMIT:
+            image_list=sorted(os.listdir(path_image)[:int(READ_LIMIT)],key=extract_num)
+            mask_list=sorted(os.listdir(path_mask)[:int(READ_LIMIT)],key=extract_num)
+        else:
+            image_list=sorted(os.listdir(path_image),key=extract_num)
+            mask_list=sorted(os.listdir(path_mask),key=extract_num)
+        
+        #Read images
+        print("Reading images from " + path_image)
+        sat_images = [np.array(Image.open(path_image+f)) for f in tqdm(image_list) if f.endswith(".jpg")]
         print("Number of images imported: " + str(len(sat_images)))
-        mask_images = [
-            np.array(Image.open(path + f))
-            for f in tqdm(os.listdir(path))
-            if f.endswith(".png")
-        ]
 
-        # get second number from image name
+        #Read masks
+        print("Reading images from " + path_mask)
+        mask_images = [ np.array(Image.open(path_mask + f))for f in tqdm(mask_list)if f.endswith(".png")]
+        print("Number of images imported: " + str(len(mask_images)))
 
-        return np.array(sat_images), np.array(mask_images)
     else:
-
+        if READ_LIMIT:
+            image_list=sorted(os.listdir(path)[:int(READ_LIMIT)],key=extract_num)
+        else:
+            image_list=sorted(os.listdir(path),key=extract_num)
+        
+        #Read images
         print("Reading images from " + path)
-        sat_images = [
-            np.array(Image.open(path + f).resize(IMAGE_SIZE))
-            for f in tqdm(os.listdir(path))
-            if f.endswith(".jpg")
-        ]
+        sat_images = [np.array(Image.open(path + f).resize(IMAGE_SIZE)) for f in tqdm(image_list) if f.endswith(".jpg")]
         print("Number of images imported: " + str(len(sat_images)))
+        
+        #Read masks
         print("\nReading masks from " + path)
-        mask_images = [
-            np.array(Image.open(path + f).resize(IMAGE_SIZE))
-            for f in tqdm(os.listdir(path))
-            if f.endswith(".png")
-        ]
-
+        mask_images = [np.array(Image.open(path + f).resize(IMAGE_SIZE))for f in tqdm(image_list) if f.endswith(".png")]
         print("Number of masks imported: " + str(len(mask_images)))
-        return np.array(sat_images), np.array(mask_images)
+
+    return np.array(sat_images), np.array(mask_images)
 
 
 # original datashaping
@@ -75,13 +82,13 @@ def export_images(images, masks, path):
     print("Exporting images to " + path)
     os.makedirs(os.path.join(path, "x"))
     os.makedirs(os.path.join(path, "y"))
-    images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
-    masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
+    # images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
+    # masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
 
     for i in tqdm(range(images.shape[0])):
-
         img = Image.fromarray(images[i].astype("uint8"))
         mask = Image.fromarray(masks[i].astype("uint8"))
+
         img.save(os.path.join(path, "x", str(i) + ".jpg"))
         mask.save(os.path.join(path, "y", str(i) + ".png"))
 
@@ -89,27 +96,27 @@ def export_images(images, masks, path):
 def prepocess_mask_images(mask_images):
     mask_images = np.array(mask_images)
     mask_images = mask_images / 255
+    
     mask_images = (
         mask_images[:, :, :, 0]
         + mask_images[:, :, :, 1] * 2
         + mask_images[:, :, :, 2] * 4
     )
     mask_images = np.where(mask_images > 0, mask_images - 1, mask_images)
-    mask_images = mask_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1])
+    #mask_images = mask_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1])
     return mask_images
 
 
 def preprocess_sat_images(sat_images):
     sat_images = np.array(sat_images)
-    # sat_images = sat_images / 255
-    sat_images = sat_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1], 3)
+    sat_images = sat_images / 255
+    #sat_images = sat_images.reshape(803, IMAGE_SIZE[0] * IMAGE_SIZE[1], 3)
     return sat_images
 
 
 def preprocess_train_images(images):
     images = np.array(images)
     images = images / 255
-
     return images
 
 
@@ -130,22 +137,12 @@ def split_read(path, val_percent):
 
 if __name__ == "__main__":
     with tf.device('/device:GPU:0'):
+        READ_LIMIT =input("How many images do you want to read?(Leave blank for all)")
         IMAGE_SIZE = MODELS[MODEL_NAME]["image_size"]
+        
         # read images
         if os.path.isdir("archive_resized"):
             print("Resized images already exist. Importing resized images...")
             sat_images, mask_images = read_images(TRAINING_DATA_PATH)
         else:
             split_read(ARCHIVE_DATA_PATH, 0.2)
-            # print("Resized images do not exist. Importing the original images...")
-            # sat_images, mask_images = read_images("archive/train/")
-
-            # # preprocess images
-            # sat_images = preprocess_sat_images(sat_images)
-            # mask_images = prepocess_mask_images(mask_images)
-
-            # # separate labels
-            # mask_images = separate_mask_labels(mask_images)
-            # overlayed_images = overlap_image_masks(sat_images, mask_images)
-            # print(overlayed_images[0, 0])
-            # export_images(overlayed_images, "archive_resized/train/")
