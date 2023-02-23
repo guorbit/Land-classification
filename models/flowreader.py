@@ -71,12 +71,9 @@ class FlowGenerator:
         """
         seed = 909  # (IMPORTANT) to transform image and corresponding mask with same augmentation parameter.
         image_datagen = ImageDataGenerator(
-            width_shift_range=0.1,
-            height_shift_range=0.1,
+         
         )  # custom fuction for each image you can use resnet one too.
         mask_datagen = ImageDataGenerator(
-            width_shift_range=0.1,
-            height_shift_range=0.1,
         )  # to make mask as feedable formate (256,256,1)
 
         image_generator = image_datagen.flow_from_directory(
@@ -92,7 +89,7 @@ class FlowGenerator:
             class_mode=None,
             seed=seed,
             batch_size=self.batch_size,
-            target_size=self.image_size,
+            target_size=(self.image_size[0]//2,self.image_size[1]//2),
             color_mode = 'grayscale'
         )
 

@@ -1,11 +1,18 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Conv2D, BatchNormalization, Activation, MaxPool2D, Conv2DTranspose, Concatenate, Input
+from tensorflow.keras.layers import Conv2D, BatchNormalization, Activation, MaxPooling2D, Conv2DTranspose, Concatenate, Input,Flatten, Dense, Dropout,ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, AveragePooling2D, GlobalAveragePooling2D, GlobalMaxPooling2D, MaxPool2D, Concatenate, ReLU, LeakyReLU, PReLU, ELU, ThresholdedReLU, Softmax, ThresholdedReLU, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add
 from tensorflow.keras.applications import VGG16
 from tensorflow.keras.models import Model
+from constants import NUM_CLASSES
 
 
 class ModelGenerator():
+    pretrained_url = "https://github.com/fchollet/deep-learning-models/" \
+                     "releases/download/v0.1/" \
+                     "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    VGG_Weights_path = tf.keras.utils.get_file(
+            pretrained_url.split("/")[-1], pretrained_url)
+    IMAGE_ORDERING = 'channels_last'
     name = None
     encoder = None
     decoder = None
@@ -20,6 +27,8 @@ class ModelGenerator():
         self.decoder = decoder
         self.input_shape = input_shape
         self.n_classes = n_classes
+        print("------------------")
+        print("Initialized with classes: ", self.n_classes)
 
     def summary(self):
         return self.model.summary()
@@ -36,6 +45,9 @@ class ModelGenerator():
     def compile(self,loss_fn, optimizer="adam", metrics=["accuracy"]):
         self.model.compile(optimizer = optimizer,loss = loss_fn, metrics = metrics)
 
+    def save(self, path):
+        self.model.save(path)
+
 
 class VGG16_UNET(ModelGenerator):
 
@@ -44,48 +56,84 @@ class VGG16_UNET(ModelGenerator):
 
 
     def create_model(self):
-        inputs = Input(self.input_shape)
+            
+        img_input = Input(shape=self.input_shape)
 
-        vgg16 = VGG16(include_top=False, weights="imagenet", input_tensor=inputs)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING)(
+            img_input)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool', data_format=self.IMAGE_ORDERING)(x)
+        f1 = x
+        # Block 2
+        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool', data_format=self.IMAGE_ORDERING)(x)
+        f2 = x
+
+        # Block 3
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3', data_format=self.IMAGE_ORDERING)(x)
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool', data_format=self.IMAGE_ORDERING)(x)
+        f3 = x
+
+        # Block 4
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3', data_format=self.IMAGE_ORDERING)(x)
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool', data_format=self.IMAGE_ORDERING)(x)
+        f4 = x
+
+        # Block 5
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING)(x)
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool', data_format=self.IMAGE_ORDERING)(x)
+        f5 = x
+
+        x = Flatten(name='flatten')(x)
+        x = Dense(4096, activation='relu', name='fc1')(x)
+        x = Dense(4096, activation='relu', name='fc2')(x)
+        x = Dense(1000, activation='softmax', name='predictions')(x)
         
-        #extracting features of the encoder blocks (forwards pass)
-        s1 = vgg16.get_layer("block1_conv2").output         ## (512 x 512)
-        s2 = vgg16.get_layer("block2_conv2").output         ## (256 x 256)
-        s3 = vgg16.get_layer("block3_conv3").output         ## (128 x 128)
-        s4 = vgg16.get_layer("block4_conv3").output         ## (64 x 64)
-
-        #bridge
-        b1 = vgg16.get_layer("block5_conv3").output         ## (32 x 32)
-
-        #decoder
-        d1 = self.decoder_block(b1, s4, 512)                     ## (64 x 64)
-        d2 = self.decoder_block(d1, s3, 256)                     ## (128 x 128)
-        d3 = self.decoder_block(d2, s2, 128)                     ## (256 x 256)
-        d4 = self.decoder_block(d3, s1, 64)                      ## (512 x 512)
-
-        #output
-        outputs = Conv2D(1, 1, padding="same", activation="sigmoid")(d4)
+        vgg = Model(img_input, x)
         
-        model = Model(inputs, outputs, name="VGG16_U-Net")
+        vgg.load_weights(self.VGG_Weights_path,by_name=True,skip_mismatch=True)
+        vgg.learning_rate = 0.00001
+        levels = [f1, f2, f3, f4, f5]
 
+        o = f4
+
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(512, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+
+        o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate()([o, f3]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(256, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+
+        o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate()([o, f2]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(128, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+
+        o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate()([o, f1]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(64, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+
+        
+
+        o = Conv2D(self.n_classes, (3, 3), padding='same', data_format=self.IMAGE_ORDERING)(o)
+        o_shape = Model(img_input, o).output_shape
+
+
+        model = Model(img_input, o)
         self.model = model
 
-    def conv_block(self,input, num_filters):
-        x = Conv2D(num_filters, 3, padding="same")(input)
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
-    
-        x = Conv2D(num_filters, 3, padding="same")(x)
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
-    
-        return x
-    
-    def decoder_block(self,input, skip_features, num_filters):
-        x = self.conv_block(input, num_filters)
-        x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(x)
-        x = Concatenate()([x, skip_features])
-        
-        return x
-    
+
 

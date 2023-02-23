@@ -2,11 +2,11 @@ import tensorflow as tf
 from tensorflow import keras
 import tensorflow.keras.backend as K
 import numpy as np
-
+from constants import NUM_CLASSES
 
 import tensorflow as tf
 import keras.backend as K
-from keras.losses import binary_crossentropy, BinaryCrossentropy
+from keras.losses import binary_crossentropy, BinaryCrossentropy, categorical_crossentropy, CategoricalCrossentropy
 
 beta = 0.25
 alpha = 0.25
@@ -18,6 +18,10 @@ smooth = 1
 class Semantic_loss_functions(object):
     def __init__(self):
         print("semantic loss functions initialized")
+
+    def test_loss(self, y_true, y_pred):
+        print(y_true.shape, y_pred.shape)
+        return categorical_crossentropy(y_true, y_pred)
 
     def dice_coef(self, y_true, y_pred):
         y_true_f = K.flatten(y_true)
@@ -45,8 +49,7 @@ class Semantic_loss_functions(object):
     def weighted_cross_entropyloss(self, y_true, y_pred):
         y_pred = self.convert_to_logits(y_pred)
         pos_weight = beta / (1 - beta)
-        loss = tf.nn.weighted_cross_entropy_with_logits(logits=y_pred,
-                                                        targets=y_true,
+        loss = tf.nn.weighted_cross_entropy_with_logits(y_pred, y_true,
                                                         pos_weight=pos_weight)
         return tf.reduce_mean(loss)
 
@@ -83,6 +86,7 @@ class Semantic_loss_functions(object):
         return score
 
     def dice_loss(self, y_true, y_pred):
+        print(y_true.shape, y_pred.shape)
         loss = 1 - self.generalized_dice_coefficient(y_true, y_pred)
         return loss
 
@@ -90,6 +94,14 @@ class Semantic_loss_functions(object):
         loss = binary_crossentropy(y_true, y_pred) + \
                self.dice_loss(y_true, y_pred)
         return loss / 2.0
+
+    def categorical_focal_loss(self,y_true, y_pred):
+
+        focal = [0, 0, 0, 0, 0]
+        for index in range(NUM_CLASSES):
+            focal -= (self.focal_loss(y_true[:, index, :], y_pred[:, index, :]))
+
+        return focal
 
     def confusion(self, y_true, y_pred):
         smooth = 1

@@ -31,7 +31,7 @@ def train_model(model, images, masks):
             MODEL_NAME + "_" + str(MODEL_ITERATION),
             MODEL_NAME + "_" + str(MODEL_ITERATION),
         ),
-        epochs=5,
+        epochs=15,
     )
     return model
 
@@ -39,8 +39,8 @@ def train_model(model, images, masks):
 if __name__ == "__main__":
     with tf.device('/device:GPU:0'):
         print("Training model " + MODEL_NAME+"_"+str(MODEL_ITERATION))
-        image_path = TRAINING_DATA_PATH + "x/"
-        mask_path = TRAINING_DATA_PATH + "y/"
+        image_path = os.path.join(TRAINING_DATA_PATH , "x","img")
+        mask_path =os.path.join( TRAINING_DATA_PATH , "y","img")
 
         model = create_model()
         model = train_model(model, image_path, mask_path)

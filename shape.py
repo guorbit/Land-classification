@@ -38,7 +38,7 @@ def extract_num(image_name):
             return int(image_name.split("_")[0])
        
 
-def read_images(path):
+def read_images(path, READ_LIMIT=None):
     if (len(path.split("/")[0].split("_")) > 1 and path.split("/")[0].split("_")[1] == "resized"):
         path_image=path+"x/"
         path_mask=path+"y/"
