@@ -1,5 +1,7 @@
 import os
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow import keras
+from keras.preprocessing.image import ImageDataGenerator,Iterator
+from shape_encoder import ImagePreprocessor
 
 
 class FlowGenerator:
@@ -89,9 +91,10 @@ class FlowGenerator:
             class_mode=None,
             seed=seed,
             batch_size=self.batch_size,
-            target_size=(self.image_size[0]//2,self.image_size[1]//2),
+            target_size=(self.image_size[0]//2*self.image_size[1]//2,1),
             color_mode = 'grayscale'
         )
+        mask_generator = self.preprocess(mask_generator)
 
         self.train_generator = zip(image_generator, mask_generator)
 
@@ -110,3 +113,9 @@ class FlowGenerator:
         """
 
         return self.train_generator
+    
+    def preprocess(self,generator):
+        for batch in generator:
+            ImagePreprocessor.onehot_encode(batch)
+            yield ImagePreprocessor.get_encoded_images()
+ 

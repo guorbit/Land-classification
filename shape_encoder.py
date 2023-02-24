@@ -6,6 +6,7 @@ from constants import (
     NUM_CLASSES,
     LABEL_MAP,
 )
+import tensorflow as tf
 
 
 
@@ -14,7 +15,25 @@ class ImagePreprocessor():
     @classmethod
     def onehot_encode(self,masks):
         '''
-        Onehot encodes the images that are currently stored in the encoder object
+        Onehot encodes the images coming from the image generator object
+
+        Parameters:
+        ----------
+        masks (tf tensor): masks to be onehot encoded
+
+        Returns:
+        -------
+        None
+        '''
+        
+
+        self.encoded_images = tf.transpose(tf.squeeze(tf.one_hot(masks, NUM_CLASSES)),[0,2,1])
+    
+
+    @classmethod
+    def get_encoded_images(self):
+        '''
+        Returns the onehot encoded images
 
         Parameters:
         ----------
@@ -22,11 +41,9 @@ class ImagePreprocessor():
 
         Returns:
         -------
-        None
+        numpy array
         '''
-        new_masks = np.zeros((masks.shape[0], masks.shape[1], masks.shape[2], NUM_CLASSES))
-        for i in range(NUM_CLASSES):
-            new_masks[:,:,:,i] = np.where(masks == i, 1, 0)
+        return self.encoded_images
       
     
 
