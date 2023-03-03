@@ -12,49 +12,21 @@ from keras import backend as K
 import os
 from tensorflow import keras
 
-
 def dice_coef(y_true, y_pred):
     smooth = 1e-7
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
-    return (2.0 * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
 
 def dice_coef_multilabel(y_true, y_pred):
-    dice = [0, 0, 0, 0, 0]
+    
+    dice = [0 for i in range(NUM_CLASSES)]
     for index in range(NUM_CLASSES):
-        dice -= dice_coef(y_true[:, index, :], y_pred[:, index, :])
+
+        dice -= dice_coef(y_true[:, :], y_pred[:, index, :])
     return dice
-
-
-gamma = 2.0
-alpha = 0.25
-
-
-def focal_loss(y_true, y_pred):
-    epsilon = K.epsilon()
-    y_pred = K.clip(y_pred, epsilon, 1.0 - epsilon)
-    cross_entropy = -y_true * K.log(y_pred)
-    weight = alpha * y_true * K.pow((1 - y_pred), gamma)
-    loss = weight * cross_entropy
-    loss = K.sum(loss, axis=1)
-    return loss
-
-
-def categorical_focal_loss(y_true, y_pred):
-
-    focal = [0, 0, 0, 0, 0, 0, 0]
-    for index in range(NUM_CLASSES):
-        focal -= focal_loss(y_true[:, index, :], y_pred[:, index, :])
-
-    return focal
-
-def masked_categorical_crossentropy(gt, pr):
-    from keras.losses import categorical_crossentropy
-    mask = 1 - gt[:, :, 0]
-    return categorical_crossentropy(gt, pr) * mask
-
 
 if __name__ == "__main__":
     model = VGG16_UNET((512, 512, 3), NUM_CLASSES)
@@ -62,7 +34,7 @@ if __name__ == "__main__":
     model.create_model()
     print(model.summary())
     loss_object = Semantic_loss_functions()
-    loss_fn = loss_object.dice_loss
+    loss_fn = keras.losses.SparseCategoricalCrossentropy()
     # loss_fn =
 
     model.compile(loss_fn)
@@ -74,7 +46,7 @@ if __name__ == "__main__":
     # preprocessor.onehot_encode()
     # masks = preprocessor.get_encoded_images()
     # print(masks.shape)
-    batch_size = 4
+    batch_size = 2
     generator = FlowGenerator(
         os.path.join(TRAINING_DATA_PATH, "x"),
         os.path.join(TRAINING_DATA_PATH, "y"),
@@ -95,7 +67,7 @@ if __name__ == "__main__":
     print(y.shape)
 
 
-    print(dataset_size)
+    print(model.output_shape())
 
     model.fit(
         train_generator,

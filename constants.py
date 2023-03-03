@@ -7,7 +7,7 @@ import os
 
 ARCHIVE_DATA_PATH = os.path.join("archive", "train")
 
-MODEL_ITERATION = 4
+MODEL_ITERATION = 5
 MODEL_NAME = "unknown"
 MODEL_FOLDER = "exported_models"
 MODEL_LIBRARY = "models"
@@ -77,5 +77,6 @@ MODELS = {
     "unknown":{
         'model':None,
         'image_size':(512,512),
+        'output_size':(256,256)
     }
 }

@@ -21,7 +21,7 @@ class Semantic_loss_functions(object):
 
     def test_loss(self, y_true, y_pred):
         print(y_true.shape, y_pred.shape)
-        return categorical_crossentropy(y_true, y_pred)
+        return CategoricalCrossentropy(y_true, y_pred)
 
     def dice_coef(self, y_true, y_pred):
         y_true_f = K.flatten(y_true)
@@ -78,15 +78,21 @@ class Semantic_loss_functions(object):
 
     def generalized_dice_coefficient(self, y_true, y_pred):
         smooth = 1.
-        y_true_f = K.flatten(y_true)
-        y_pred_f = K.flatten(y_pred)
+        y_true_f = y_true
+        y_pred_f = y_pred
+
+        # y_true_f = K.flatten(y_true)
+        # y_pred_f = K.flatten(y_pred)
+        print(y_true_f.shape, y_pred_f.shape)
         intersection = K.sum(y_true_f * y_pred_f)
         score = (2. * intersection + smooth) / (
                 K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
         return score
 
     def dice_loss(self, y_true, y_pred):
-        print(y_true.shape, y_pred.shape)
+        y_pred = tf.argmax(y_pred, axis=-1)
+        y_true = tf.squeeze(y_true, axis=-1)
+
         loss = 1 - self.generalized_dice_coefficient(y_true, y_pred)
         return loss
 

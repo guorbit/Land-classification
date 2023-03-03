@@ -7,13 +7,13 @@ import numpy as np
 import os
 import tensorflow as tf
 from models.loss_constructor import Semantic_loss_functions
-
+from test_generator import dice_coef_9cat
 if __name__ == "__main__":
     with tf.device('/device:GPU:0'):
         loss = Semantic_loss_functions()
         unet3p_hybrid_loss = loss.unet3p_hybrid_loss
         print("Loading model " + MODEL_NAME+"_"+str(MODEL_ITERATION))
-        model = load_model(os.path.join(MODEL_FOLDER,MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5"),custom_objects={'unet3p_hybrid_loss': unet3p_hybrid_loss})
+        model = load_model(os.path.join(MODEL_FOLDER,MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5"),custom_objects={'unet3p_hybrid_loss': unet3p_hybrid_loss,'dice_coef_9cat':dice_coef_9cat})
 
         n = len(os.listdir(os.path.join(VALIDATION_DATA_PATH ,"x","img")))
         images,m = read_images(os.path.join(VALIDATION_DATA_PATH , "x","img"))
