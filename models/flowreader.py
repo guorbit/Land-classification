@@ -2,6 +2,7 @@ import os
 from tensorflow import keras
 from keras.preprocessing.image import ImageDataGenerator,Iterator
 from shape_encoder import ImagePreprocessor
+import numpy as np
 
 
 class FlowGenerator:
@@ -76,6 +77,7 @@ class FlowGenerator:
          
         )  # custom fuction for each image you can use resnet one too.
         mask_datagen = ImageDataGenerator(
+            
         )  # to make mask as feedable formate (256,256,1)
 
         image_generator = image_datagen.flow_from_directory(
@@ -91,12 +93,13 @@ class FlowGenerator:
             class_mode=None,
             seed=seed,
             batch_size=self.batch_size,
-            target_size=(self.image_size[0]//2*self.image_size[1]//2,1),
+            target_size=(self.image_size[0]//2,self.image_size[1]//2),
             color_mode = 'grayscale'
         )
-        mask_generator = self.preprocess(mask_generator)
+        mask_generator = self.preprocess_mask(mask_generator)
 
         self.train_generator = zip(image_generator, mask_generator)
+        self.train_generator = self.preprocess(self.train_generator)
 
     def get_generator(self):
         """
@@ -114,8 +117,28 @@ class FlowGenerator:
 
         return self.train_generator
     
-    def preprocess(self,generator):
+    def preprocess_mask(self,generator):
         for batch in generator:
-            ImagePreprocessor.onehot_encode(batch)
-            yield ImagePreprocessor.get_encoded_images()
+            yield batch
+
+    
+    def preprocess(self,generator_zip):
+        for (img,mask) in generator_zip:
+            for i in range(len(img)):
+                seed = np.random.randint(0, 1000)
+                img[i] = self.augmentation_pipeline(img[i],seed)
+                mask[i] = self.augmentation_pipeline(mask[i],seed)
+            yield (img,mask)
+
+
+
+    def init_pipeline(self):
+        keras.Sequential([
+            keras.layers.experimental.preprocessing.random_flip("horizontal_and_vertical"),
+        ])
+
+
+
+    def augmentation_pipeline(self,images,seed):
+        return images
  

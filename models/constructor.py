@@ -95,10 +95,10 @@ class VGG16_UNET(ModelGenerator):
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool', data_format=self.IMAGE_ORDERING)(x)
         f5 = x
 
-        x = Flatten(name='flatten')(x)
-        x = Dense(4096, activation='relu', name='fc1')(x)
-        x = Dense(4096, activation='relu', name='fc2')(x)
-        x = Dense(1000, activation='softmax', name='predictions')(x)
+        # x = Flatten(name='flatten')(x)
+        # x = Dense(4096, activation='relu', name='fc1')(x)
+        # x = Dense(4096, activation='relu', name='fc2')(x)
+        # x = Dense(1000, activation='softmax', name='predictions')(x)
         
         vgg = Model(img_input, x)
         
@@ -130,10 +130,10 @@ class VGG16_UNET(ModelGenerator):
         o = (Conv2D(64, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
 
-        o = Conv2D(self.n_classes, (3, 3), padding='same', data_format=self.IMAGE_ORDERING)(o)
+        o = Conv2D(self.n_classes, (3, 3), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
         o_shape = Model(img_input, o).output_shape  
-        o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
-        o = (Permute((2, 1)))(o)
+        # o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
+        # o = (Permute((2, 1)))(o)
         o = (Activation('softmax'))(o)
 
         
