@@ -34,6 +34,7 @@ class ModelGenerator():
         return self.model.summary()
 
     def fit(self, *args, **kwargs):
+        
         self.model.fit(*args, **kwargs)
 
     def predict(self):
@@ -61,7 +62,7 @@ class VGG16_UNET(ModelGenerator):
     def create_model(self):
             
         img_input = Input(shape=self.input_shape)
-
+        x = tf.keras.applications.vgg19.preprocess_input(img_input)
         x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING)(
             img_input)
         x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=self.IMAGE_ORDERING)(x)
