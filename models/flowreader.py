@@ -126,19 +126,33 @@ class FlowGenerator:
         for (img,mask) in generator_zip:
             for i in range(len(img)):
                 seed = np.random.randint(0, 1000)
-                img[i] = self.augmentation_pipeline(img[i],seed)
-                mask[i] = self.augmentation_pipeline(mask[i],seed)
+                preprocessor,image_preprocessor = self.init_pipeline(seed)
+                img[i] = self.augmentation_pipeline(img[i],image_preprocessor)
+                mask[i] = self.augmentation_pipeline(mask[i],preprocessor)
             yield (img,mask)
 
 
 
-    def init_pipeline(self):
-        keras.Sequential([
-            keras.layers.experimental.preprocessing.random_flip("horizontal_and_vertical"),
+    def init_pipeline(self,seed):
+        preprocessor = keras.Sequential([
+            keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical",seed=seed),
+            keras.layers.experimental.preprocessing.RandomRotation(0.2,seed=seed),
+            keras.layers.experimental.preprocessing.RandomZoom(0.2,seed=seed),
+            #keras.layers.experimental.preprocessing.RandomCrop(256,256,seed=seed),
+            keras.layers.experimental.preprocessing.RandomTranslation(0.2,0.2,seed=seed),
         ])
+        image_preprocessor = keras.Sequential([
+            keras.layers.experimental.preprocessing.RandomContrast(0.2),
+            #keras.layers.experimental.preprocessing.RandomBrightness(0.2),
+            #keras.layers.experimental.preprocessing.RandomSaturation(0.2),
+            #keras.layers.experimental.preprocessing.RandomHue(0.2),
+        ])
+        image_preprocessor.add(preprocessor)
+        return preprocessor,image_preprocessor
 
 
 
-    def augmentation_pipeline(self,images,seed):
+    def augmentation_pipeline(self,images,pipeline):
+        images = pipeline(images)
         return images
  
