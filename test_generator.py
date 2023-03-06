@@ -34,7 +34,7 @@ if __name__ == "__main__":
     model.create_model()
     print(model.summary())
     loss_object = Semantic_loss_functions()
-    loss_fn = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    loss_fn = keras.losses.categorical_crossentropy
     # loss_fn =
 
     model.compile(loss_fn)

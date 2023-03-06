@@ -103,9 +103,9 @@ class VGG16_UNET(ModelGenerator):
         vgg = Model(img_input, x)
         
         vgg.load_weights(self.VGG_Weights_path,by_name=True,skip_mismatch=True)
-        vgg.learning_rate = 0.0001
+        vgg.learning_rate = 0.001
         levels = [f1, f2, f3, f4, f5]
-
+        MERGE_AXIS = -1
         o = f4
 
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
@@ -113,26 +113,26 @@ class VGG16_UNET(ModelGenerator):
         o = (BatchNormalization())(o)
 
         o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
-        o = (Concatenate()([o, f3]))
+        o = (Concatenate(axis=MERGE_AXIS)([o, f3]))
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
         o = (Conv2D(256, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
 
         o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
-        o = (Concatenate()([o, f2]))
+        o = (Concatenate(axis=MERGE_AXIS)([o, f2]))
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
         o = (Conv2D(128, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
 
         o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
-        o = (Concatenate()([o, f1]))
+        o = (Concatenate(axis=MERGE_AXIS)([o, f1]))
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
         o = (Conv2D(64, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
 
         o = Conv2D(self.n_classes, (3, 3), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
         o_shape = Model(img_input, o).output_shape  
-        # o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
+        o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
         # o = (Permute((2, 1)))(o)
         o = (Activation('softmax'))(o)
 

@@ -93,13 +93,13 @@ class FlowGenerator:
             class_mode=None,
             seed=seed,
             batch_size=self.batch_size,
-            target_size=(self.image_size[0]//2,self.image_size[1]//2),
+            target_size=(self.image_size[0]//2*self.image_size[1]//2,1),
             color_mode = 'grayscale'
         )
         mask_generator = self.preprocess_mask(mask_generator)
 
         self.train_generator = zip(image_generator, mask_generator)
-        self.train_generator = self.preprocess(self.train_generator)
+        #self.train_generator = self.preprocess(self.train_generator)
 
     def get_generator(self):
         """
