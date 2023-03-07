@@ -124,12 +124,8 @@ class FlowGenerator:
     
     def preprocess_mask(self,generator):
         for batch in generator:
-            encoded = np.zeros((batch.shape[0],self.image_size[0]//2*self.image_size[1]//2,self.num_classes))
-            for i in range(self.num_classes):
-                encoded[:,:,i] = tf.squeeze((batch == i).astype(int))
-
-            #batch = tf.one_hot(batch, self.num_classes)
-            yield encoded
+            batch = ImagePreprocessor.onehot_encode(batch,self.image_size,self.num_classes)
+            yield batch
 
     
     def preprocess(self,generator_zip):

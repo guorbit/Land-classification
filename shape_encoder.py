@@ -13,7 +13,7 @@ import tensorflow as tf
 class ImagePreprocessor():
     
     @classmethod
-    def onehot_encode(self,masks):
+    def onehot_encode(self,masks, image_size, num_classes):
         '''
         Onehot encodes the images coming from the image generator object
 
@@ -25,27 +25,12 @@ class ImagePreprocessor():
         -------
         None
         '''
-        if masks.shape[-1] != None:
-            return tf.one_hot(tf.squeeze(masks, NUM_CLASSES))
-        else:
-
-            return masks 
+        encoded = np.zeros((masks.shape[0],image_size[0]//2*image_size[1]//2,num_classes))
+        for i in range(num_classes):
+            encoded[:,:,i] = tf.squeeze((masks == i).astype(int))
     
+        return encoded
 
-    @classmethod
-    def get_encoded_images(self):
-        '''
-        Returns the onehot encoded images
-
-        Parameters:
-        ----------
-        None
-
-        Returns:
-        -------
-        numpy array
-        '''
-        return self.encoded_images
       
     
 
