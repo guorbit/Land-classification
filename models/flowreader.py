@@ -127,6 +127,9 @@ class FlowGenerator:
             batch = ImagePreprocessor.onehot_encode(batch,self.image_size,self.num_classes)
             yield batch
 
+
+    #! functions below this line don't work as of now
+    #! ----------------------------------------------
     
     def preprocess(self,generator_zip):
         for (img,mask) in generator_zip:

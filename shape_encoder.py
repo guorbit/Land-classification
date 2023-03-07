@@ -23,7 +23,7 @@ class ImagePreprocessor():
 
         Returns:
         -------
-        None
+        encoded (tf tensor): onehot encoded masks
         '''
         encoded = np.zeros((masks.shape[0],image_size[0]//2*image_size[1]//2,num_classes))
         for i in range(num_classes):

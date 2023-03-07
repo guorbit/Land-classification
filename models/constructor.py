@@ -22,6 +22,20 @@ class ModelGenerator():
     model = None
 
     def __init__(self,encoder,decoder, input_shape, n_classes):
+        '''
+        Initializes the model generator object
+
+        Parameters
+        ----------
+        encoder (string): Encoder to be used
+        decoder (string): Decoder to be used
+        input_shape (tuple): Input shape of the model
+        n_classes (int): Number of classes
+
+        Returns
+        -------
+        None
+        '''
         self.name = encoder+"_"+decoder
         self.encoder = encoder
         self.decoder = decoder
@@ -31,35 +45,139 @@ class ModelGenerator():
         print("Initialized with classes: ", self.n_classes)
 
     def summary(self):
+        '''
+        Prints the summary of the model
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+
         return self.model.summary()
 
     def fit(self, *args, **kwargs):
-        
+        '''
+        Starts the training of the model
+
+        Parameters
+        ----------
+        *args: Arguments to be passed to the fit function
+        **kwargs: Keyword arguments to be passed to the fit function
+
+        Returns
+        -------
+        None
+        '''
         self.model.fit(*args, **kwargs)
 
     def predict(self):
+        '''
+        Predicts the output of the model
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
         self.model.predict()
 
     def evaluate(self):
+        '''
+        Evaluates the model
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        
+        '''
         self.model.evaluate()
 
     def compile(self,loss_fn, optimizer="adam", metrics=["accuracy"]):
+        '''
+        Compiles the model
+
+        Parameters
+        ----------
+        loss_fn (function): Loss function to be used
+        optimizer (str): Optimizer to be used
+        metrics (list): List of metrics to be used
+
+        Returns
+        -------
+        None
+        '''
         self.model.compile(optimizer = optimizer,loss = loss_fn, metrics = metrics)
 
     def save(self, path):
+        '''
+        Saves the model
+
+        Parameters
+        ----------
+        path (str): Path to save the model
+
+        Returns
+        -------
+        None
+        '''
         self.model.save(path)
 
     def output_shape(self):
+        '''
+        Returns the output shape of the model
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        tuple: Output shape of the model
+        '''
         return self.model.output_shape
 
 
 class VGG16_UNET(ModelGenerator):
 
     def __init__(self, input_shape, n_classes):
+        '''
+        Initializes a VGG16 Unet Segmentation Class
+
+        Parameters
+        ----------
+        input_shape (tuple): Input shape of the image
+        n_classes (int): Number of classes to be segmented
+
+        Returns
+        -------
+        None
+        '''
         super().__init__("vgg16", "unet", input_shape, n_classes)
 
 
     def create_model(self):
+        '''
+        Initializes a VGG16 Unet Segmentation model
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
             
         img_input = Input(shape=self.input_shape)
         x = tf.keras.applications.vgg19.preprocess_input(img_input)

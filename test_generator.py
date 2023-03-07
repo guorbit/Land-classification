@@ -38,14 +38,7 @@ if __name__ == "__main__":
     # loss_fn =
 
     model.compile(loss_fn)
-    # images, y = read_images(os.path.join(TRAINING_DATA_PATH , "x", "img")+os.sep)
-    # x, masks = read_images(os.path.join(TRAINING_DATA_PATH , "y", "img")+os.sep)
 
-    # convert masks to one hot encoded images
-    # preprocessor = ImagePreprocessor(masks)
-    # preprocessor.onehot_encode()
-    # masks = preprocessor.get_encoded_images()
-    # print(masks.shape)
     batch_size = 2
     generator = FlowGenerator(
         os.path.join(TRAINING_DATA_PATH, "x"),
