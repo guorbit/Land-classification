@@ -95,15 +95,15 @@ class VGG16_UNET(ModelGenerator):
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool', data_format=self.IMAGE_ORDERING)(x)
         f5 = x
 
-        # x = Flatten(name='flatten')(x)
-        # x = Dense(4096, activation='relu', name='fc1')(x)
-        # x = Dense(4096, activation='relu', name='fc2')(x)
-        # x = Dense(1000, activation='softmax', name='predictions')(x)
+        x = Flatten(name='flatten')(x)
+        x = Dense(4096, activation='relu', name='fc1')(x)
+        x = Dense(4096, activation='relu', name='fc2')(x)
+        x = Dense(1000, activation='softmax', name='predictions')(x)
         
         vgg = Model(img_input, x)
         
         vgg.load_weights(self.VGG_Weights_path,by_name=True,skip_mismatch=True)
-        vgg.learning_rate = 0.001
+        #vgg.learning_rate = 0.001
         levels = [f1, f2, f3, f4, f5]
         MERGE_AXIS = -1
         o = f4
@@ -141,7 +141,7 @@ class VGG16_UNET(ModelGenerator):
 
         model.outputWidth = o_shape[2]
         model.outputHeight = o_shape[1]
-        model.learning_rate = 0.001
+        #model.learning_rate = 0.001
         self.model = model
 
 
