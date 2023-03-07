@@ -10,7 +10,9 @@ from constants import (
     ARCHIVE_DATA_PATH,
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
+
 )
+from shape_encoder import ImagePreprocessor
 import tensorflow as tf
 
 
@@ -36,7 +38,7 @@ def extract_num(image_name):
             return int(image_name.split("_")[0])
        
 
-def read_images(path):
+def read_images(path, READ_LIMIT=None):
     if (len(path.split("/")[0].split("_")) > 1 and path.split("/")[0].split("_")[1] == "resized"):
         path_image=path+"x/"
         path_mask=path+"y/"
@@ -59,6 +61,7 @@ def read_images(path):
         print("Number of images imported: " + str(len(mask_images)))
 
     else:
+        IMAGE_SIZE = MODELS[MODEL_NAME]["image_size"]        
         if READ_LIMIT:
             image_list=sorted(os.listdir(path)[:int(READ_LIMIT)],key=extract_num)
         else:
@@ -66,12 +69,12 @@ def read_images(path):
         
         #Read images
         print("Reading images from " + path)
-        sat_images = [np.array(Image.open(path + f).resize(IMAGE_SIZE)) for f in tqdm(image_list) if f.endswith(".jpg")]
+        sat_images = [np.array(Image.open(os.path.join(path,  f)).resize(IMAGE_SIZE)) for f in tqdm(image_list) if f.endswith(".jpg")]
         print("Number of images imported: " + str(len(sat_images)))
         
         #Read masks
         print("\nReading masks from " + path)
-        mask_images = [np.array(Image.open(path + f).resize(IMAGE_SIZE))for f in tqdm(image_list) if f.endswith(".png")]
+        mask_images = [np.array(Image.open(os.path.join(path,  f)).resize(IMAGE_SIZE))for f in tqdm(image_list) if f.endswith(".png")]
         print("Number of masks imported: " + str(len(mask_images)))
 
     return np.array(sat_images), np.array(mask_images)
@@ -80,17 +83,16 @@ def read_images(path):
 # original datashaping
 def export_images(images, masks, path):
     print("Exporting images to " + path)
-    os.makedirs(os.path.join(path, "x"))
-    os.makedirs(os.path.join(path, "y"))
-    # images = images.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1], 3)
-    # masks = masks.reshape(images.shape[0], IMAGE_SIZE[0], IMAGE_SIZE[1])
+    os.makedirs(os.path.join(path, "x", "img"))
+    os.makedirs(os.path.join(path, "y", "img"))
+   
+ 
 
     for i in tqdm(range(images.shape[0])):
         img = Image.fromarray(images[i].astype("uint8"))
         mask = Image.fromarray(masks[i].astype("uint8"))
-
-        img.save(os.path.join(path, "x", str(i) + ".jpg"))
-        mask.save(os.path.join(path, "y", str(i) + ".png"))
+        img.save(os.path.join(path, "x",'img', str(i) + ".jpg"))
+        mask.save(os.path.join(path, "y",'img', str(i) + ".png"))
 
 
 def prepocess_mask_images(mask_images):
@@ -123,6 +125,8 @@ def preprocess_train_images(images):
 def split_read(path, val_percent):
     images, masks = read_images(path)
     mask_images = prepocess_mask_images(masks)
+    
+
     export_images(
         images[: int(len(images) * val_percent)],
         mask_images[: int(len(mask_images) * val_percent)],

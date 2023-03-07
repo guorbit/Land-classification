@@ -6,17 +6,21 @@ from constants import MODEL_NAME, MODELS, NUM_CLASSES,VALIDATION_DATA_PATH, MODE
 import numpy as np
 import os
 import tensorflow as tf
+from models.loss_constructor import Semantic_loss_functions
 
 if __name__ == "__main__":
     with tf.device('/device:GPU:0'):
-
+        loss = Semantic_loss_functions()
+        unet3p_hybrid_loss = loss.unet3p_hybrid_loss
         print("Loading model " + MODEL_NAME+"_"+str(MODEL_ITERATION))
         model = load_model(os.path.join(MODEL_FOLDER,MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5"))
 
-        images,m = read_images(VALIDATION_DATA_PATH + "x/")
-        i,masks = read_images(VALIDATION_DATA_PATH + "y/")
+        n = len(os.listdir(os.path.join(VALIDATION_DATA_PATH ,"x","img")))
+        images,m = read_images(os.path.join(VALIDATION_DATA_PATH , "x","img"))
+        i,masks = read_images(os.path.join(VALIDATION_DATA_PATH ,"y","img"))
         print("SHAPE  - - - - - - - ",images.shape)
         prediction = model.predict(images)
+        print(prediction.shape)
         new_mask = np.zeros((masks.shape[0], masks.shape[1], masks.shape[2], 3))
         print(prediction.shape)
         prediction = prediction.reshape(
