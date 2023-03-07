@@ -1,6 +1,6 @@
 import os
 from tensorflow import keras
-from keras.preprocessing.image import ImageDataGenerator,Iterator
+from keras.preprocessing.image import ImageDataGenerator, Iterator
 from shape_encoder import ImagePreprocessor
 import numpy as np
 from tqdm import tqdm
@@ -15,8 +15,7 @@ class FlowGenerator:
         image_size,
         num_classes,
         shuffle=True,
-        batch_size = 32,
-  
+        batch_size=32,
     ):
         """
         Initializes the flow generator object
@@ -33,7 +32,6 @@ class FlowGenerator:
         Returns:
         -------
         None
-
         """
 
         self.image_path = image_path
@@ -59,7 +57,7 @@ class FlowGenerator:
 
         """
 
-        return len(os.listdir(os.path.join(self.image_path,"img")))
+        return len(os.listdir(os.path.join(self.image_path, "img")))
 
     def __make_generator(self):
         """
@@ -74,16 +72,9 @@ class FlowGenerator:
         None
 
         """
-        seed = 909  # (IMPORTANT) to transform image and corresponding mask with same augmentation parameter.
-        image_datagen = ImageDataGenerator(
-         
-        )  # custom fuction for each image you can use resnet one too.
-        mask_datagen = ImageDataGenerator(
-            
-        )  # to make mask as feedable formate (256,256,1)
-
-        steps = self.get_dataset_size() // self.batch_size
-      
+        seed = 909
+        image_datagen = ImageDataGenerator()
+        mask_datagen = ImageDataGenerator()
 
         image_generator = image_datagen.flow_from_directory(
             self.image_path,
@@ -98,13 +89,12 @@ class FlowGenerator:
             class_mode=None,
             seed=seed,
             batch_size=self.batch_size,
-            target_size=(self.image_size[0]//2*self.image_size[1]//2,1),
-            color_mode = 'grayscale'
+            target_size=(self.image_size[0] // 2 * self.image_size[1] // 2, 1),
+            color_mode="grayscale",
         )
-        mask_generator = self.preprocess_mask(mask_generator)
 
         self.train_generator = zip(image_generator, mask_generator)
-        #self.train_generator = self.preprocess(self.train_generator)
+        self.train_generator = self.preprocess(self.train_generator)
 
     def get_generator(self):
         """
@@ -119,62 +109,26 @@ class FlowGenerator:
         generator: generator object
 
         """
-
         return self.train_generator
-    
-    def preprocess_mask(self,generator):
-        for batch in generator:
-            batch = ImagePreprocessor.onehot_encode(batch,self.image_size,self.num_classes)
-            yield batch
 
+    def preprocess(self, generator_zip):
+        """
+        Preprocessor function to augments the images and masks and onehot encodes the masks
 
-    #! functions below this line don't work as of now
-    #! ----------------------------------------------
-    
-    def preprocess(self,generator_zip):
-        for (img,mask) in generator_zip:
+        Parameters:
+        ----------
+        generator_zip (tuple): tuple of image and mask generator
+
+        Returns:
+        -------
+        generator: generator batch
+        """
+        for (img, mask) in generator_zip:
             for i in range(len(img)):
-                seed = np.random.randint(0, 1000)
-                
-                preprocessor = self.change_seed(seed,self.preprocessor)
-                image_preprocessor = self.change_seed(seed,self.image_preprocessor)
-
-                img[i] = self.augmentation_pipeline(img[i],image_preprocessor)
-                mask[i] = self.augmentation_pipeline(mask[i],preprocessor)
-            yield (img,mask)
-
-
-    def change_seed(self,seed,pipeline):
-        for layer in pipeline.layers:
-            if hasattr(layer,"seed"):
-             
-                layer.seed = seed
-        return pipeline
-       
-        
-    
-  
-    def init_pipeline(self,seed):
-        preprocessor = keras.Sequential([
-            keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical",seed=seed,name="flip"),
-            keras.layers.experimental.preprocessing.RandomRotation(0.2,seed=seed,name="rotation"),
-            keras.layers.experimental.preprocessing.RandomZoom(0.2,seed=seed,name="zoom"),
-            #keras.layers.experimental.preprocessing.RandomCrop(256,256,seed=seed),
-            keras.layers.experimental.preprocessing.RandomTranslation(0.2,0.2,seed=seed,name="translation"),
-        ])
-        image_preprocessor = keras.Sequential([
-            keras.layers.experimental.preprocessing.RandomContrast(0.2),
-            #keras.layers.experimental.preprocessing.RandomBrightness(0.2),
-            #keras.layers.experimental.preprocessing.RandomSaturation(0.2),
-            #keras.layers.experimental.preprocessing.RandomHue(0.2),
-        ])
-        image_preprocessor.add(preprocessor)
-        self.preprocessor = preprocessor
-        self.image_preprocessor = image_preprocessor
-
-
-
-    def augmentation_pipeline(self,images,pipeline):
-        images = pipeline(images)
-        return images
- 
+                img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
+                    img[i], mask[i], self.image_size
+                )
+            mask = ImagePreprocessor.onehot_encode(
+                mask, self.image_size, self.num_classes
+            )
+            yield (img, mask)
