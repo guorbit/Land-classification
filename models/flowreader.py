@@ -3,6 +3,8 @@ from tensorflow import keras
 from keras.preprocessing.image import ImageDataGenerator,Iterator
 from shape_encoder import ImagePreprocessor
 import numpy as np
+from tqdm import tqdm
+import tensorflow as tf
 
 
 class FlowGenerator:
@@ -80,6 +82,9 @@ class FlowGenerator:
             
         )  # to make mask as feedable formate (256,256,1)
 
+        steps = self.get_dataset_size() // self.batch_size
+      
+
         image_generator = image_datagen.flow_from_directory(
             self.image_path,
             class_mode=None,
@@ -119,27 +124,44 @@ class FlowGenerator:
     
     def preprocess_mask(self,generator):
         for batch in generator:
-            yield batch
+            encoded = np.zeros((batch.shape[0],self.image_size[0]//2*self.image_size[1]//2,self.num_classes))
+            for i in range(self.num_classes):
+                encoded[:,:,i] = tf.squeeze((batch == i).astype(int))
+
+            #batch = tf.one_hot(batch, self.num_classes)
+            yield encoded
 
     
     def preprocess(self,generator_zip):
         for (img,mask) in generator_zip:
             for i in range(len(img)):
                 seed = np.random.randint(0, 1000)
-                preprocessor,image_preprocessor = self.init_pipeline(seed)
+                
+                preprocessor = self.change_seed(seed,self.preprocessor)
+                image_preprocessor = self.change_seed(seed,self.image_preprocessor)
+
                 img[i] = self.augmentation_pipeline(img[i],image_preprocessor)
                 mask[i] = self.augmentation_pipeline(mask[i],preprocessor)
             yield (img,mask)
 
 
-
+    def change_seed(self,seed,pipeline):
+        for layer in pipeline.layers:
+            if hasattr(layer,"seed"):
+                print("Changing seed of layer: ",layer.name)
+                layer.seed = seed
+        return pipeline
+       
+        
+    
+  
     def init_pipeline(self,seed):
         preprocessor = keras.Sequential([
-            keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical",seed=seed),
-            keras.layers.experimental.preprocessing.RandomRotation(0.2,seed=seed),
-            keras.layers.experimental.preprocessing.RandomZoom(0.2,seed=seed),
+            keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical",seed=seed,name="flip"),
+            keras.layers.experimental.preprocessing.RandomRotation(0.2,seed=seed,name="rotation"),
+            keras.layers.experimental.preprocessing.RandomZoom(0.2,seed=seed,name="zoom"),
             #keras.layers.experimental.preprocessing.RandomCrop(256,256,seed=seed),
-            keras.layers.experimental.preprocessing.RandomTranslation(0.2,0.2,seed=seed),
+            keras.layers.experimental.preprocessing.RandomTranslation(0.2,0.2,seed=seed,name="translation"),
         ])
         image_preprocessor = keras.Sequential([
             keras.layers.experimental.preprocessing.RandomContrast(0.2),
@@ -148,7 +170,8 @@ class FlowGenerator:
             #keras.layers.experimental.preprocessing.RandomHue(0.2),
         ])
         image_preprocessor.add(preprocessor)
-        return preprocessor,image_preprocessor
+        self.preprocessor = preprocessor
+        self.image_preprocessor = image_preprocessor
 
 
 

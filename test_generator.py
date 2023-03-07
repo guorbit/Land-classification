@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     model.fit(
         train_generator,
-        epochs=5,
+        epochs=10,
         batch_size=batch_size,
         steps_per_epoch=dataset_size // batch_size,
    

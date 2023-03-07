@@ -25,9 +25,11 @@ class ImagePreprocessor():
         -------
         None
         '''
-        
+        if masks.shape[-1] != None:
+            return tf.one_hot(tf.squeeze(masks, NUM_CLASSES))
+        else:
 
-        self.encoded_images = tf.transpose(tf.squeeze(tf.one_hot(masks, NUM_CLASSES)),[0,2,1])
+            return masks 
     
 
     @classmethod

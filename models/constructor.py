@@ -141,7 +141,7 @@ class VGG16_UNET(ModelGenerator):
 
         model.outputWidth = o_shape[2]
         model.outputHeight = o_shape[1]
-
+        model.learning_rate = 0.001
         self.model = model
 
 
