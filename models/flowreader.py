@@ -148,7 +148,7 @@ class FlowGenerator:
     def change_seed(self,seed,pipeline):
         for layer in pipeline.layers:
             if hasattr(layer,"seed"):
-                print("Changing seed of layer: ",layer.name)
+             
                 layer.seed = seed
         return pipeline
        
