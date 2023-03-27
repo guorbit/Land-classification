@@ -7,13 +7,15 @@ import numpy as np
 import os
 import tensorflow as tf
 from models.loss_constructor import Semantic_loss_functions
+from test_generator import dice_coef_9cat_loss
+from PIL import Image
 
 if __name__ == "__main__":
     with tf.device('/device:GPU:0'):
         loss = Semantic_loss_functions()
         unet3p_hybrid_loss = loss.unet3p_hybrid_loss
         print("Loading model " + MODEL_NAME+"_"+str(MODEL_ITERATION))
-        model = load_model(os.path.join(MODEL_FOLDER,MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5"))
+        model = load_model(os.path.join(MODEL_FOLDER,MODEL_NAME+"_"+str(MODEL_ITERATION) + ".h5"), custom_objects={'dice_coef_9cat_loss': dice_coef_9cat_loss})
 
         n = len(os.listdir(os.path.join(VALIDATION_DATA_PATH ,"x","img")))
         images,m = read_images(os.path.join(VALIDATION_DATA_PATH , "x","img"))
@@ -46,8 +48,23 @@ if __name__ == "__main__":
                 for j in range(masks.shape[2]):
                     new_mask[k,i,j,:] = LABEL_MAP[masks[k, i, j]]
 
+            export_mode = False
             axarr[0].imshow(images[k])
             axarr[1].imshow(new_mask[k])
             axarr[2].imshow(pred_rgb)
-
             plt.show()
+            if export_mode:
+                inp = input("Enter to continue, y to save")
+                if inp== "y":
+                    plt.imshow( pred_rgb/255)
+                    plt.axis('off')
+                    plt.savefig("test.png", bbox_inches='tight')
+                    plt.imshow( new_mask[k]/255)
+                    plt.savefig("test2.png", bbox_inches='tight')
+                    plt.imshow( images[k]/255)
+                    plt.savefig("test3.png", bbox_inches='tight')
+           
+           
+
+            
+

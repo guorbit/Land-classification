@@ -1,8 +1,5 @@
 from models.constructor import ModelGenerator, VGG16_UNET
-import numpy as np
-from shape import read_images
 from constants import TRAINING_DATA_PATH, NUM_CLASSES, VALIDATION_DATA_PATH
-from shape_encoder import ImagePreprocessor
 from models.loss_constructor import Semantic_loss_functions
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -14,27 +11,32 @@ from constants import (
     MODEL_ITERATION,
     MODEL_FOLDER,
 )
-from models.flowreader import FlowGenerator
+
+
 from keras import backend as K
 import os
 from tensorflow import keras
+from utilities.segmentation_utils.flowreader import FlowGenerator
+import utilities.segmentation_utils.ImagePreprocessor as ImagePreprocessor
+#!Note: The above package is not available in the repo. It is a custom package for reading data from a folder and generating batches of data.
+#!Note: it is available under guorbit/utilities on github.
 
+def dice_coef_9cat(y_true, y_pred, smooth=1e-7):
+    '''
+    Dice coefficient for 10 categories. Ignores background pixel label 0
+    Pass to model as metric during compile statement
+    '''
+    y_true_f = K.flatten(y_true[...,1:])
+    y_pred_f = K.flatten(y_pred[...,1:])
+    intersect = K.sum(y_true_f * y_pred_f, axis=-1)
+    denom = K.sum(y_true_f + y_pred_f, axis=-1)
+    return K.mean((2. * intersect / (denom + smooth)))
 
-def dice_coef(y_true, y_pred):
-    smooth = 1e-7
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(y_true_f * y_pred_f)
-    return (2.0 * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-
-
-def dice_coef_multilabel(y_true, y_pred):
-
-    dice = [0 for i in range(NUM_CLASSES)]
-    for index in range(NUM_CLASSES):
-
-        dice -= dice_coef(y_true[:, :], y_pred[:, index, :])
-    return dice
+def dice_coef_9cat_loss(y_true, y_pred):
+    '''
+    Dice loss to minimize. Pass to model as loss during compile statement
+    '''
+    return 1 - dice_coef_9cat(y_true, y_pred)
 
 
 if __name__ == "__main__":
@@ -43,17 +45,20 @@ if __name__ == "__main__":
     model.create_model()
     print(model.summary())
     loss_object = Semantic_loss_functions()
-    loss_fn = keras.losses.categorical_crossentropy
+    loss_fn = dice_coef_9cat_loss
     # loss_fn =
+
 
     model.compile(loss_fn)
 
-    batch_size = 2
+    batch_size = 4
     generator = FlowGenerator(
         os.path.join(TRAINING_DATA_PATH, "x"),
         os.path.join(TRAINING_DATA_PATH, "y"),
-        image_size=(512, 512),
+        image_size=(512, 512),#
+        output_size=(256*256,1),
         shuffle=True,
+        preprocessing_enabled=True,
         num_classes=NUM_CLASSES,
         batch_size=batch_size,
     )
@@ -69,7 +74,7 @@ if __name__ == "__main__":
 
     model.fit(
         train_generator,
-        epochs=10,
+        epochs=20,
         batch_size=batch_size,
         steps_per_epoch=dataset_size // batch_size,
     )
