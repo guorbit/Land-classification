@@ -144,5 +144,59 @@ class VGG16_UNET(ModelGenerator):
         #model.learning_rate = 0.001
         self.model = model
 
+class two_layer_model(ModelGenerator):
+    '''
+        This class is used to generate a model with two layers
+    '''
+    def __init__(self, n_classes, input_height=512, input_width=512,image_ordering='channels_last'):
+        self.n_classes = n_classes
+        self.input_height = input_height
+        self.input_width = input_width
+        self.IMAGE_ORDERING = image_ordering
+    
+    def create_model(self):
+        img_input = Input(shape=(self.input_height, self.input_width, 3))
+        # encoder
+
+        # Block 1
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING)(img_input)
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool', data_format=self.IMAGE_ORDERING)(x)
+        f1 = x
+
+        # Block 2
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool', data_format=self.IMAGE_ORDERING)(x)
+        f2 = x
+
+        x = Flatten(name='flatten')(x)
+        x = Dense(256, activation='relu', name='fc1')(x)
+        x = Dense(256, activation='relu', name='fc2')(x)
+        x = Dense(256, activation='softmax', name='predictions')(x)
+
+        #decoder
+        MERGE_AXIS = -1
+        o = f2
+
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(512, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+
+        o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate(axis=MERGE_AXIS)([o, f1]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(256, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+
+        o_shape = Model(img_input, o).output_shape
+        o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)
+        
+        o = (Activation('softmax'))(o)
+
+        model = Model(img_input, o)
+
+        model.outputWidth = o_shape[2]
+        model.outputHeight = o_shape[1]
+        
+        self.model = model
 
 
