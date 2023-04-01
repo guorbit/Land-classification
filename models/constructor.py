@@ -21,6 +21,8 @@ class ModelGenerator():
     output_shape = None
     n_classes = None
     model = None
+    base_model = None
+    loss_fn = None
 
     def __init__(self,encoder,decoder, input_shape, n_classes):
         '''
@@ -45,6 +47,15 @@ class ModelGenerator():
         print("------------------")
         print("Initialized with classes: ", self.n_classes)
 
+    class accuracy_drop_callback(keras.callbacks.Callback):
+        previous_loss = None
+        def on_epoch_end(self, epoch, logs={}):
+            if not self.previous_loss is None and logs.get('loss') > self.previous_loss:
+                print("Stopping training as loss has gotten worse")
+                self.model.stop_training = True
+            else:
+                self.previous_loss = logs.get('loss')
+
     def summary(self):
         '''
         Prints the summary of the model
@@ -60,7 +71,7 @@ class ModelGenerator():
 
         return self.model.summary()
 
-    def fit(self, *args, **kwargs):
+    def fit(self,tuning_generator, *args, **kwargs):
         '''
         Starts the training of the model
 
@@ -73,7 +84,13 @@ class ModelGenerator():
         -------
         None
         '''
-        self.model.fit(*args, **kwargs)
+        self.model.fit(*args, **kwargs, callbacks=[self.accuracy_drop_callback()])
+        self.base_model.trainable = True
+        self.model.learning_rate = 0.0000001
+        self.model.compile(loss = self.loss_fn, optimizer = 'adam', metrics = ["accuracy"])
+        self.model.fit(tuning_generator,epochs = 10,batch_size = 4,steps_per_epoch=160, callbacks=[self.accuracy_drop_callback()])
+
+
 
     def predict(self):
         '''
@@ -118,6 +135,7 @@ class ModelGenerator():
         -------
         None
         '''
+        self.loss_fn = loss_fn
         self.model.compile(optimizer = optimizer,loss = loss_fn, metrics = metrics)
 
     def save(self, path):
@@ -150,7 +168,7 @@ class ModelGenerator():
 
 
 class VGG16_UNET(ModelGenerator):
-
+   
     def __init__(self, input_shape, n_classes):
         '''
         Initializes a VGG16 Unet Segmentation Class
@@ -182,34 +200,34 @@ class VGG16_UNET(ModelGenerator):
             
         img_input = Input(shape=self.input_shape)
         x = tf.keras.applications.vgg16.preprocess_input(img_input)
-        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=self.IMAGE_ORDERING, trainable = False)(x)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING )(x)
+        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=self.IMAGE_ORDERING )(x)
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool', data_format=self.IMAGE_ORDERING)(x)
         f1 = x
         # Block 2
-        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=self.IMAGE_ORDERING, trainable = False)(x)
+        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=self.IMAGE_ORDERING)(x)
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool', data_format=self.IMAGE_ORDERING)(x)
         f2 = x
 
         # Block 3
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3', data_format=self.IMAGE_ORDERING, trainable = False)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3', data_format=self.IMAGE_ORDERING)(x)
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool', data_format=self.IMAGE_ORDERING)(x)
         f3 = x
 
         # Block 4
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3', data_format=self.IMAGE_ORDERING, trainable = False)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3', data_format=self.IMAGE_ORDERING)(x)
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool', data_format=self.IMAGE_ORDERING)(x)
         f4 = x
 
         # Block 5
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING, trainable = False)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING, trainable = False)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING)(x)
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool', data_format=self.IMAGE_ORDERING)(x)
         f5 = x
 
@@ -221,6 +239,8 @@ class VGG16_UNET(ModelGenerator):
         vgg = Model(img_input, x)
         
         vgg.load_weights(self.VGG_Weights_path,by_name=True,skip_mismatch=True)
+        self.base_model = vgg
+        self.base_model.trainable = False
         #vgg.learning_rate = 0.001
         levels = [f1, f2, f3, f4, f5]
         MERGE_AXIS = -1
@@ -261,6 +281,9 @@ class VGG16_UNET(ModelGenerator):
         model.outputHeight = o_shape[1]
         #model.learning_rate = 0.001
         self.model = model
+    
+    def get_base_model(self):
+        return self.base_model
 
 
 

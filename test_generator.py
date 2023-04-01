@@ -38,6 +38,67 @@ def dice_coef_9cat_loss(y_true, y_pred):
     '''
     return 1 - dice_coef_9cat(y_true, y_pred)
 
+def masked_categorical_crossentropy(y_true, y_pred):
+    '''
+    Masked categorical crossentropy to ignore background pixel label 0
+    Pass to model as loss during compile statement
+    '''
+    y_true = y_true[...,1:]
+    y_pred = y_pred[...,1:]
+
+    loss = K.categorical_crossentropy(y_true, y_pred)
+    return loss 
+
+
+def categorical_focal_loss(y_true,y_pred):
+    
+    gamma = 2.
+    alpha = .25
+    y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
+    epsilon = K.epsilon()
+    y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
+    cross_entropy = -y_true * K.log(y_pred)
+    weight = alpha * y_true * K.pow((1 - y_pred), gamma)
+    loss = weight * cross_entropy
+    loss = K.sum(loss, axis=1)
+    return loss
+
+
+def categorical_jackard_loss(y_true,y_pred):
+    '''
+    Jackard loss to minimize. Pass to model as loss during compile statement
+    '''
+
+    smooth = 1e-7
+    intersection = K.sum(K.abs(y_true * y_pred), axis=-2)
+    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-2)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth)
+    
+    return (1 - jac) * smooth
+
+
+def categorical_ssim_loss(y_true,y_pred):
+    '''
+    SSIM loss to minimize. Pass to model as loss during compile statement
+    '''
+    
+
+
+
+def hybrid_loss(y_true,y_pred):
+    '''
+    Hybrid loss to minimize. Pass to model as loss during compile statement
+    '''
+    jackard_loss = categorical_jackard_loss(y_true,y_pred)
+    focal_loss = categorical_focal_loss(y_true,y_pred)
+
+
+    print(jackard_loss)
+    print(focal_loss)
+
+    return jackard_loss*10**7 + focal_loss/1000
+
+
 
 if __name__ == "__main__":
     model = VGG16_UNET((512, 512, 3), NUM_CLASSES)
@@ -49,7 +110,7 @@ if __name__ == "__main__":
     # loss_fn =
 
 
-    model.compile(loss_fn)
+    model.compile(hybrid_loss)
 
     batch_size = 4
     generator = FlowGenerator(
@@ -62,8 +123,19 @@ if __name__ == "__main__":
         num_classes=NUM_CLASSES,
         batch_size=batch_size,
     )
+    tuning_generator = FlowGenerator(
+        os.path.join(TRAINING_DATA_PATH, "x"),
+        os.path.join(TRAINING_DATA_PATH, "y"),
+        image_size=(512, 512),#
+        output_size=(256*256,1),
+        shuffle=True,
+        preprocessing_enabled=True,
+        num_classes=NUM_CLASSES,
+        batch_size=batch_size,
+    )
 
     train_generator = generator.get_generator()
+    tuning_generator = tuning_generator.get_generator()
     dataset_size = generator.get_dataset_size()
 
     x, y = next(train_generator)
@@ -73,6 +145,7 @@ if __name__ == "__main__":
     print(model.output_shape())
 
     model.fit(
+        tuning_generator,
         train_generator,
         epochs=20,
         batch_size=batch_size,
