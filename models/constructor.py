@@ -148,14 +148,12 @@ class two_layer_model(ModelGenerator):
     '''
         This class is used to generate a model with two layers
     '''
-    def __init__(self, n_classes, input_height=512, input_width=512,image_ordering='channels_last'):
-        self.n_classes = n_classes
-        self.input_height = input_height
-        self.input_width = input_width
-        self.IMAGE_ORDERING = image_ordering
+    def __init__(self, input_shape, n_classes):
+        super().__init__("vgg16", "unet", input_shape, n_classes)
+        
     
     def create_model(self):
-        img_input = Input(shape=(self.input_height, self.input_width, 3))
+        img_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         # encoder
 
         # Block 1
@@ -168,24 +166,26 @@ class two_layer_model(ModelGenerator):
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool', data_format=self.IMAGE_ORDERING)(x)
         f2 = x
 
-        x = Flatten(name='flatten')(x)
-        x = Dense(256, activation='relu', name='fc1')(x)
-        x = Dense(256, activation='relu', name='fc2')(x)
-        x = Dense(256, activation='softmax', name='predictions')(x)
+        # x = Flatten(name='flatten')(x)
+        # x = Dense(256, activation='relu', name='fc1')(x)
+        # x = Dense(256, activation='relu', name='fc2')(x)
+        # x = Dense(256, activation='softmax', name='predictions')(x)
 
         #decoder
         MERGE_AXIS = -1
         o = f2
 
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
-        o = (Conv2D(512, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(256, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
 
         o = (UpSampling2D((2, 2), data_format=self.IMAGE_ORDERING))(o)
         o = (Concatenate(axis=MERGE_AXIS)([o, f1]))
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
-        o = (Conv2D(256, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(128, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
+
+        o = Conv2D(self.n_classes, (3, 3), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
 
         o_shape = Model(img_input, o).output_shape
         o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)

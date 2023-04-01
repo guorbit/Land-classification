@@ -1,4 +1,4 @@
-from models.constructor import ModelGenerator, VGG16_UNET
+from models.constructor import ModelGenerator, VGG16_UNET,two_layer_model
 import numpy as np
 from shape import read_images
 from constants import TRAINING_DATA_PATH, NUM_CLASSES,VALIDATION_DATA_PATH
@@ -29,7 +29,7 @@ def dice_coef_multilabel(y_true, y_pred):
     return dice
 
 if __name__ == "__main__":
-    model = VGG16_UNET((512, 512, 3), NUM_CLASSES)
+    model = two_layer_model((512, 512, 3), NUM_CLASSES)
     print(model.name)
     model.create_model()
     print(model.summary())
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     model.fit(
         train_generator,
-        epochs=10,
+        epochs=1,
         batch_size=batch_size,
         steps_per_epoch=dataset_size // batch_size,
    
