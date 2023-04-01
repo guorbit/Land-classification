@@ -22,6 +22,7 @@ from test_generator import (
     categorical_jackard_loss,
     hybrid_loss,
     categorical_ssim_loss,
+    ssim_loss,
 )
 from PIL import Image
 
@@ -39,6 +40,7 @@ if __name__ == "__main__":
                 "categorical_jackard_loss": categorical_jackard_loss,
                 "hybrid_loss": hybrid_loss,
                 "categorical_ssim_loss": categorical_ssim_loss,
+                "ssim_loss": ssim_loss,
             },
         )
 
@@ -48,6 +50,7 @@ if __name__ == "__main__":
         print("SHAPE  - - - - - - - ", images.shape)
         prediction = model.predict(images)
         print(prediction.shape)
+        print(prediction[0,0,:])
         new_mask = np.zeros((masks.shape[0], masks.shape[1], masks.shape[2], 3))
         print(prediction.shape)
         prediction = prediction.reshape(

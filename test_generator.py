@@ -2,6 +2,7 @@ from models.constructor import ModelGenerator, VGG16_UNET
 from constants import TRAINING_DATA_PATH, NUM_CLASSES, VALIDATION_DATA_PATH
 from models.loss_constructor import Semantic_loss_functions
 import tensorflow as tf
+import numpy as np
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from constants import (
     MODEL_NAME,
@@ -81,7 +82,34 @@ def categorical_ssim_loss(y_true,y_pred):
     '''
     SSIM loss to minimize. Pass to model as loss during compile statement
     '''
+    # calculate ssim for each channel seperately
+    y_true = tf.reshape(y_true,[-1,256,256,7])
+    y_pred = tf.reshape(y_pred,[-1,256,256,7])
+
+
+    categorical_ssim = tf.convert_to_tensor([tf.image.ssim(tf.expand_dims(y_true[...,i],-1),tf.expand_dims(y_pred[...,i],-1),max_val = 1.0,filter_size=11) for i in range(7)])
+    categorical_ssim = 1 - categorical_ssim
+
+    # swap axes 0,1
+    categorical_ssim = tf.transpose(categorical_ssim, perm=[1,0])
+    return categorical_ssim
     
+
+def ssim_loss(y_true,y_pred):
+    '''
+    SSIM loss to minimize. Pass to model as loss during compile statement
+    '''
+    # calculate ssim for each channel seperately
+    y_true = tf.reshape(y_true,[-1,256,256,7])
+    y_pred = tf.reshape(y_pred,[-1,256,256,7])
+
+
+    
+    categorical_ssim = 1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, 1.0))
+
+    # swap axes 0,1
+    
+    return categorical_ssim
 
 
 
@@ -91,12 +119,14 @@ def hybrid_loss(y_true,y_pred):
     '''
     jackard_loss = categorical_jackard_loss(y_true,y_pred)
     focal_loss = categorical_focal_loss(y_true,y_pred)
-
+    ssim_loss = categorical_ssim_loss(y_true,y_pred)
 
     print(jackard_loss)
     print(focal_loss)
+    print(ssim_loss)
 
-    return jackard_loss*10**7 + focal_loss/1000
+
+    return jackard_loss*10**7 + focal_loss/1000 + ssim_loss*10
 
 
 
@@ -110,7 +140,7 @@ if __name__ == "__main__":
     # loss_fn =
 
 
-    model.compile(hybrid_loss)
+    model.compile(ssim_loss)
 
     batch_size = 4
     generator = FlowGenerator(
