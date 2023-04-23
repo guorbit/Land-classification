@@ -3,7 +3,9 @@ import os
 from map import MODEL_MAP
 
 
-ARCHIVE_DATA_PATH = os.path.join("archive", "train")
+ARCHIVE_TRAIN_DATA_PATH = os.path.join("archive", "train")
+ARCHIVE_VAL_DATA_PATH = os.path.join("archive", "val")
+ARCHIVE_TEST_DATA_PATH = os.path.join("archive", "test")
 
 MODEL_ITERATION = 5
 MODEL_NAME = "unknown"
@@ -12,6 +14,7 @@ MODEL_LIBRARY = "models"
 
 TRAINING_DATA_PATH = os.path.join("archive_resized", "train")
 VALIDATION_DATA_PATH = os.path.join("archive_resized", "val")
+TEST_DATA_PATH = os.path.join("archive_resized", "test")
 
 NUM_CLASSES = 7
 

@@ -6,7 +6,7 @@ from constants import (
     MODEL_NAME,
     MODELS,
     NUM_CLASSES,
-    VALIDATION_DATA_PATH,
+    TEST_DATA_PATH,
     MODEL_ITERATION,
     LABEL_MAP,
     MODEL_FOLDER,
@@ -18,35 +18,31 @@ from models.loss_constructor import Semantic_loss_functions
 from test_generator import dice_coef_9cat_loss
 from test_generator import (
     masked_categorical_crossentropy,
-    categorical_focal_loss,
-    categorical_jackard_loss,
-    hybrid_loss,
-    categorical_ssim_loss,
-    ssim_loss,
+
 )
 from PIL import Image
 
 if __name__ == "__main__":
     with tf.device("/device:GPU:0"):
         loss = Semantic_loss_functions()
-        unet3p_hybrid_loss = loss.unet3p_hybrid_loss
+      
         print("Loading model " + MODEL_NAME + "_" + str(MODEL_ITERATION))
         model = load_model(
             os.path.join(MODEL_FOLDER, MODEL_NAME + "_" + str(MODEL_ITERATION) + ".h5"),
             custom_objects={
                 "dice_coef_9cat_loss": dice_coef_9cat_loss,
                 "masked_categorical_crossentropy": masked_categorical_crossentropy,
-                "categorical_focal_loss": categorical_focal_loss,
-                "categorical_jackard_loss": categorical_jackard_loss,
-                "hybrid_loss": hybrid_loss,
-                "categorical_ssim_loss": categorical_ssim_loss,
-                "ssim_loss": ssim_loss,
+                "categorical_focal_loss": loss.categorical_focal_loss,
+                "categorical_jackard_loss": loss.categorical_jackard_loss,
+                "hybrid_loss": loss.hybrid_loss,
+                "categorical_ssim_loss": loss.categorical_ssim_loss,
+
             },
         )
-
-        n = len(os.listdir(os.path.join(VALIDATION_DATA_PATH, "x", "img")))
-        images, m = read_images(os.path.join(VALIDATION_DATA_PATH, "x", "img"))
-        i, masks = read_images(os.path.join(VALIDATION_DATA_PATH, "y", "img"))
+        model.training = False
+        n = len(os.listdir(os.path.join(TEST_DATA_PATH, "x", "img")))
+        images, masks = read_images(os.path.join(TEST_DATA_PATH, "x", "img"))
+       
         print("SHAPE  - - - - - - - ", images.shape)
         prediction = model.predict(images)
         print(prediction.shape)
