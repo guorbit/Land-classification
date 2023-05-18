@@ -56,15 +56,20 @@ def masked_categorical_crossentropy(y_true, y_pred):
 
 
 if __name__ == "__main__":
-    model = VGG16_UNET((512, 512, 3), NUM_CLASSES)
+    wrapper = VGG16_UNET((512, 512, 3),(256 * 256,7), NUM_CLASSES)
+    model = wrapper.get_model()
     print(model.name)
-    model.create_model(load_weights=True)
+    # model.create_model(load_weights=True)
  
     loss_object = Semantic_loss_functions()
     loss_fn = loss_object.hybrid_loss
     # loss_fn =
 
-    model.compile(loss_fn)
+    model.compile(
+        optimizer=keras.optimizers.SGD(momentum=0.8),
+        loss=loss_fn,
+        metrics=["accuracy"],
+    )
 
     batch_size = 16
     seed = 42
@@ -97,8 +102,8 @@ if __name__ == "__main__":
         ],
     )
 
-    print(model.output_shape())
-    dataset_size = 100
+    # print(model.output_shape())
+    dataset_size = None
     training_args = {
         "batch_size": batch_size,
         "epochs": 5,
@@ -139,16 +144,28 @@ if __name__ == "__main__":
         "batch_size" : batch_size,
     }
 
-    model.fit(
-        training_args=training_args,
-        tuning_args=tuning_args,
-        reader_args=reader_args,
-        val_reader_args=val_reader_args,
-        transfer_learning=True,
-        dataset_size=dataset_size,
-        enabled_blocks=[True,True,False,False]
-        
+    # model.fit(
+    #     training_args=training_args,
+    #     tuning_args=tuning_args,
+    #     reader_args=reader_args,
+    #     val_reader_args=val_reader_args,
+    #     transfer_learning=True,
+    #     dataset_size=dataset_size,
+    #     enabled_blocks=[True,True,False,False] #4, 3, 2, 1 blocks        
+    # )
+    generator = FlowGenerator(
+        **reader_args
     )
+    train_generator = generator.get_generator()
+    val_generator = FlowGenerator(
+        **val_reader_args
+    )
+    dataset_size = generator.get_dataset_size()
+    val_generator = val_generator.get_generator()
+    training_args["steps_per_epoch"] = dataset_size // training_args["batch_size"]
+
+    model.fit(train_generator,**training_args,validation_data = val_generator, validation_steps = 50)
+    
     if not os.path.isdir(MODEL_FOLDER):
         os.mkdir(MODEL_FOLDER)
     model.save(

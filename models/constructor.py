@@ -8,7 +8,7 @@ from utilities.segmentation_utils.flowreader import FlowGenerator
 from constants import NUM_CLASSES, TRAINING_DATA_PATH, TEST_DATA_PATH
 
 
-class ModelGenerator():
+class ModelGenerator_old():
     pretrained_url = "https://github.com/fchollet/deep-learning-models/" \
                      "releases/download/v0.1/" \
                      "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
@@ -99,7 +99,6 @@ class ModelGenerator():
 
         print("Enabled blocks: ", enabled_blocks)
         self.compile(self.loss_fn)
-        print(self.summary())
         generator = FlowGenerator(
             **reader_args
         )
@@ -124,7 +123,7 @@ class ModelGenerator():
                     print("Tuning block: ", len(self.levels) - counter)
                     i.trainable = True
                     self.model.learning_rate = 0.000000001 * (10 ** -counter)
-                    self.model.compile(loss = self.loss_fn, optimizer = 'adam', metrics = ["accuracy"])
+                    self.model.compile(loss = self.loss_fn, optimizer = self.optimizer, metrics = ["accuracy"])
                     tuning_generator = FlowGenerator(
                         **reader_args
                     )
@@ -168,7 +167,7 @@ class ModelGenerator():
         '''
         self.model.evaluate()
 
-    def compile(self,loss_fn, optimizer=tf.optimizers.SGD(momentum=0.9), metrics=["accuracy"]):
+    def compile(self,loss_fn, optimizer=tf.optimizers.SGD(momentum=0.8), metrics=["accuracy"]):
         '''
         Compiles the model
 
@@ -183,6 +182,7 @@ class ModelGenerator():
         None
         '''
         self.loss_fn = loss_fn
+        self.optimizer = optimizer
         self.model.compile(optimizer = optimizer,loss = loss_fn, metrics = metrics)
 
     def save(self, path):
@@ -212,11 +212,90 @@ class ModelGenerator():
         tuple: Output shape of the model
         '''
         return self.model.output_shape
+    
 
-
-class VGG16_UNET(ModelGenerator):
+class ModelGenerator(Model):
    
-    def __init__(self, input_shape, n_classes):
+    name = None
+    n_classes = None
+    base_model = None
+    levels = None
+    loss_fn = None
+    optimizer = None
+    acc_metric = keras.metrics.CategoricalAccuracy()
+    loss_tracker = keras.metrics.Mean(name="loss")
+    def __init__(self,name,*args, **kwargs):
+        super(ModelGenerator,self).__init__(*args, **kwargs)
+        self.name = name
+        
+
+
+    class accuracy_drop_callback(keras.callbacks.Callback):
+        previous_loss = None
+        def on_epoch_end(self, epoch, logs={}):
+            if not self.previous_loss is None and logs.get('loss') > self.previous_loss:
+                print("Stopping training as loss has gotten worse")
+                self.model.stop_training = True
+            else:
+                self.previous_loss = logs.get('loss')
+
+
+    def compile(self,*args, **kwargs):
+        self.loss_fn = kwargs["loss"]
+        self.optimizer = kwargs["optimizer"]
+        super(ModelGenerator,self).compile(*args, **kwargs)
+
+
+    def save(self, path):
+        self.model.save(path)
+
+    def train_step(self, data):
+        x, y = data
+
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)  # Forward pass
+            # Compute our own loss
+            loss = self.loss_fn(y, y_pred)
+            loss = tf.reduce_mean(loss)
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        # Compute our own metrics
+        self.loss_tracker.update_state(loss)
+        self.acc_metric.update_state(y, y_pred)
+        return {"loss": self.loss_tracker.result(), "mae": self.acc_metric.result()}
+    
+    # def custom_loop(self,dataset,epochs=1,batch_size=32,learning_rate=0.001):
+        
+    #     for epoch in range(epochs):
+    #         print("Epoch: ",epoch+1)
+    #         for dataset_idx, x, y in enumerate(dataset):
+    #             with tf.GradientTape() as tape:
+    #                 y_pred = self.model(x)
+    #                 loss = self.loss_fn(y, y_pred)
+                   
+    #             gradient = tape.gradient(loss, self.model.trainable_weights)
+    #             self.optimizer.apply_gradients(zip(gradient, self.model.trainable_weights))
+    #             acc_metric.update_state(y, y_pred)
+
+
+class VGG16_UNET():
+    pretrained_url = "https://github.com/fchollet/deep-learning-models/" \
+                     "releases/download/v0.1/" \
+                     "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    pretrained_url_top = "https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    VGG_Weights_path = tf.keras.utils.get_file(
+            pretrained_url.split("/")[-1], pretrained_url)
+    IMAGE_ORDERING = 'channels_last'
+    n_classes = None
+
+
+    def __init__(self, input_shape,output_shape, n_classes):
         '''
         Initializes a VGG16 Unet Segmentation Class
 
@@ -229,10 +308,13 @@ class VGG16_UNET(ModelGenerator):
         -------
         None
         '''
-        super().__init__("vgg16", "unet", input_shape, n_classes)
+        self.n_classes = n_classes
+        print("Initializing VGG16 Unet")
+        self.create_model(input_shape=input_shape,output_shape=output_shape, load_weights = True)
+        
 
 
-    def create_model(self, load_weights = False):
+    def create_model(self,input_shape,output_shape, load_weights = False):
         '''
         Initializes a VGG16 Unet Segmentation model
 
@@ -244,9 +326,11 @@ class VGG16_UNET(ModelGenerator):
         -------
         None
         '''
+        
         MERGE_AXIS = -1
             
-        img_input = Input(shape=self.input_shape)
+        img_input = Input(shape=input_shape)
+        
         x = tf.keras.applications.vgg16.preprocess_input(img_input)
         x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING)(x)
         x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=self.IMAGE_ORDERING)(x)
@@ -320,15 +404,21 @@ class VGG16_UNET(ModelGenerator):
         o = (Activation('softmax'))(o)
 
         
-        model = Model(img_input, o)
+        model = ModelGenerator("vgg_unet", inputs = img_input, outputs = o)
 
         model.outputWidth = o_shape[2]
         model.outputHeight = o_shape[1]
         #model.learning_rate = 0.001
         self.model = model
     
+    def get_model(self):
+        return self.model
+
     def get_base_model(self):
         return self.base_model
+    
+
+
 
 
 

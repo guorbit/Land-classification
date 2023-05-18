@@ -129,11 +129,11 @@ def split_read(path, val_percent):
 
 
 if __name__ == "__main__":
-    sizes_to_cut = [ 2048]
+    sizes_to_cut = [1024]
     stages = [
         [ARCHIVE_TRAIN_DATA_PATH, TRAINING_DATA_PATH],
         [ARCHIVE_VAL_DATA_PATH, VALIDATION_DATA_PATH],
-        # [ARCHIVE_TEST_DATA_PATH, TEST_DATA_PATH],
+        [ARCHIVE_TEST_DATA_PATH, TEST_DATA_PATH],
     ]
 
     for stage in stages:
