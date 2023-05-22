@@ -486,7 +486,7 @@ class ModelGenerator(Model):
         dataset,
         epochs=1,
         batch_size=32,
-        learning_rate=0.001,
+        learning_rate=1E-2,
         steps_per_epoch=512,
         validation_dataset=None,
         validation_steps=50,

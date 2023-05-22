@@ -37,7 +37,7 @@ class CustomReduceLROnPlateau(keras.callbacks.ReduceLROnPlateau):
         block4_names = ["block4_conv1", "block4_conv2", "block4_conv3"]
         block3_names = ["block3_conv1", "block3_conv2", "block3_conv3"]
         if old_lr != new_lr:
-            tf.print(f"Reducing learning rate as loss has gotten worse. Decreasing from {old_lr} to {new_lr}")
+            tf.print(f"Reducing learning rate as loss has gotten worse. Decreasing from {round(old_lr,10)} to {round(new_lr,10)}")
 
             if self.block_counter == 0:
                 for layer in self.model.layers:
@@ -52,9 +52,10 @@ class CustomReduceLROnPlateau(keras.callbacks.ReduceLROnPlateau):
             elif self.block_counter == 4:
                 self.model.training = False
 
-            tf.print(self.model.summary())
             self.block_counter += 1
+            optimizer_weights = self.model.optimizer.get_weights()
             self.model.compile(loss = self.model.loss_fn, optimizer = self.model.optimizer, metrics = ["accuracy"])
+            self.model.optimizer.set_weights(optimizer_weights)
 
 
 

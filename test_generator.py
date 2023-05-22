@@ -60,7 +60,7 @@ def masked_categorical_crossentropy(y_true, y_pred):
 if __name__ == "__main__":
     wrapper = VGG16_UNET((512, 512, 3), (256 * 256, 7), NUM_CLASSES)
     model = wrapper.get_model()
-    print(model.name)
+
     # model.create_model(load_weights=True)
 
     loss_object = Semantic_loss_functions()
@@ -140,18 +140,9 @@ if __name__ == "__main__":
     }
 
     reduce_lr = CustomReduceLROnPlateau(
-        monitor="val_loss", factor=0.1, patience=3, min_lr=0.000001
+        monitor="val_loss", factor=0.1, patience=2, min_lr=1E-10
     )
 
-    # model.fit(
-    #     training_args=training_args,
-    #     tuning_args=tuning_args,
-    #     reader_args=reader_args,
-    #     val_reader_args=val_reader_args,
-    #     transfer_learning=True,
-    #     dataset_size=dataset_size,
-    #     enabled_blocks=[True,True,False,False] #4, 3, 2, 1 blocks
-    # )
     generator = FlowGenerator(**reader_args)
     train_generator = generator.get_generator()
     val_generator = FlowGenerator(**val_reader_args)

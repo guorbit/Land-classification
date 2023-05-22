@@ -13,7 +13,7 @@ class Semantic_loss_functions(object):
         self.weights = np.ones((NUM_CLASSES,), dtype=np.float32)
         if weights_enabled:
             self.load_weights()
-        print("semantic loss functions initialized")
+        print(f"Semantic loss function initialized with {NUM_CLASSES} classes.")
 
     def load_weights(self):
         weights = pd.read_csv(
@@ -25,7 +25,9 @@ class Semantic_loss_functions(object):
             # self.weights[i] = math.log10(weights.iloc[i, 1]) * math.log10(n/weights.iloc[i, 2])
             self.weights[i] = math.log(weights.iloc[i, 1])
         self.weights = 1 - tf.nn.softmax(self.weights)
-        print(self.weights)
+        join_str = ", "
+        print(f"Class weights initialized as: {join_str.join([str(round(x,4)) for x in K.eval(self.weights)])}")
+
 
     @tf.function
     def categorical_focal_loss(self, y_true, y_pred):
