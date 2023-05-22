@@ -27,6 +27,7 @@ class Semantic_loss_functions(object):
         self.weights = 1 - tf.nn.softmax(self.weights)
         print(self.weights)
 
+    @tf.function
     def categorical_focal_loss(self, y_true, y_pred):
         gamma = 1.5
         alpha = 0.25
@@ -41,6 +42,7 @@ class Semantic_loss_functions(object):
         loss = loss * smooth
         return loss
 
+    @tf.function
     def categorical_jackard_loss(self, y_true, y_pred):
         """
         Jackard loss to minimize. Pass to model as loss during compile statement
@@ -52,6 +54,7 @@ class Semantic_loss_functions(object):
 
         return 1 - jac
 
+    @tf.function
     def categorical_ssim_loss(self, y_true, y_pred, window_size=(4, 4)):
         """
         SSIM loss to minimize. Pass to model as loss during compile statement
@@ -146,6 +149,7 @@ class Semantic_loss_functions(object):
 
         return categorical_ssim
 
+    @tf.function
     def hybrid_loss(self, y_true, y_pred):
         """
         Hybrid loss to minimize. Pass to model as loss during compile statement.
