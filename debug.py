@@ -11,9 +11,7 @@ tf.debugging.check_numerics(img1, "img1 contains invalid values")
 tf.debugging.check_numerics(img2, "img2 contains invalid values")
 
 # Calculate MS-SSIM
-ms_ssim = tf.image.ssim_multiscale(
-    img1, img2, max_val=1.0
-)
+ms_ssim = tf.image.ssim_multiscale(img1, img2, max_val=1.0)
 
 
 loss_object = Semantic_loss_functions()
@@ -23,6 +21,5 @@ returned = loss_fn(img1, img2)
 
 
 # Print result
-print("ssim local:",ms_ssim)
-print("ssim loss:",returned)
-
+print("ssim local:", ms_ssim)
+print("ssim loss:", returned)
