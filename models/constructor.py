@@ -424,11 +424,15 @@ class ModelGenerator(Model):
     loss_tracker = keras.metrics.Mean(name="loss")
     eval_acc_metric = keras.metrics.CategoricalAccuracy(name="val_accuracy")
     eval_loss_tracker = keras.metrics.Mean(name="val_loss")
+    backup_logs = None
     # metrics = None
 
     def __init__(self, name, *args, **kwargs):
         super(ModelGenerator, self).__init__(*args, **kwargs)
         self.name = name
+
+    def get_backup_logs(self):
+        return self.backup_logs
 
     def compile(self, *args, **kwargs):
         self.loss_fn = kwargs["loss"]
@@ -491,6 +495,7 @@ class ModelGenerator(Model):
         validation_dataset=None,
         validation_steps=50,
         callbacks=[],
+        enable_tensorboard=False,
     ):
         self.optimizer.learning_rate = learning_rate
         logs = {}
@@ -544,10 +549,11 @@ class ModelGenerator(Model):
             for metric in metrics:
                 if hasattr(metric, "result"):
                     logs[metric.name] = metric.result().numpy()
+                    
                     metric.reset_states()
                 else:
                     logs[metric.name] = metric.numpy()
-
+            self.backup_logs = logs.copy()
             for callback in callbacks:  # on epoch end callbacks
                 callback.on_epoch_end(epoch, logs=logs)
 

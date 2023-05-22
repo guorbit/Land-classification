@@ -1,63 +1,17 @@
-from models.constructor import ModelGenerator, VGG16_UNET
-from constants import TRAINING_DATA_PATH, NUM_CLASSES, TEST_DATA_PATH
+from constants import NUM_CLASSES, TRAINING_DATA_PATH, VALIDATION_DATA_PATH
+from models.constructor import VGG16_UNET
 from models.loss_constructor import Semantic_loss_functions
 from models.callbacks import accuracy_drop_callback, CustomReduceLROnPlateau
+from utilities.segmentation_utils.ImagePreprocessor import PreprocessingQueue
+from utilities.segmentation_utils.flowreader import FlowGenerator
+import os
 import tensorflow as tf
 import numpy as np
-from keras.preprocessing.image import ImageDataGenerator
-from constants import (
-    MODEL_NAME,
-    MODELS,
-    TRAINING_DATA_PATH,
-    VALIDATION_DATA_PATH,
-    NUM_CLASSES,
-    MODEL_ITERATION,
-    MODEL_FOLDER,
-)
-from keras import backend as K
-from keras.callbacks import ReduceLROnPlateau
-import os
-from tensorflow import keras
-from utilities.segmentation_utils.flowreader import FlowGenerator
-import utilities.segmentation_utils.ImagePreprocessor as ImagePreprocessor
-from utilities.segmentation_utils.ImagePreprocessor import PreprocessingQueue
-
-#!Note: The above package is not available in the repo. It is a custom package for reading data from a folder and generating batches of data.
-#!Note: it is available under guorbit/utilities on github.
+import keras
+import optuna
 
 
-def dice_coef_9cat(y_true, y_pred, smooth=1e-7):
-    """
-    Dice coefficient for 10 categories. Ignores background pixel label 0
-    Pass to model as metric during compile statement
-    """
-    y_true_f = K.flatten(y_true[..., 1:])
-    y_pred_f = K.flatten(y_pred[..., 1:])
-    intersect = K.sum(y_true_f * y_pred_f, axis=-1)
-    denom = K.sum(y_true_f + y_pred_f, axis=-1)
-    return K.mean((2.0 * intersect / (denom + smooth)))
-
-
-def dice_coef_9cat_loss(y_true, y_pred):
-    """
-    Dice loss to minimize. Pass to model as loss during compile statement
-    """
-    return 1 - dice_coef_9cat(y_true, y_pred)
-
-
-def masked_categorical_crossentropy(y_true, y_pred):
-    """
-    Masked categorical crossentropy to ignore background pixel label 0
-    Pass to model as loss during compile statement
-    """
-    y_true = y_true[..., 1:]
-    y_pred = y_pred[..., 1:]
-
-    loss = K.categorical_crossentropy(y_true, y_pred)
-    return loss
-
-
-if __name__ == "__main__":
+def objective(trial):
     wrapper = VGG16_UNET((512, 512, 3), (256 * 256, 7), NUM_CLASSES)
     model = wrapper.get_model()
 
@@ -73,8 +27,17 @@ if __name__ == "__main__":
         metrics=["accuracy"],
     )
 
-    batch_size = 16
+    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8, 16, 32])
     seed = 42
+
+    random_brightness = trial.suggest_float("random_brightness", 0.0, 0.5)
+
+    random_contrast_min = trial.suggest_float("random_contrast_min", 0.5, 1)
+    random_contrast_max = trial.suggest_float("random_contrast_max", 1, 1.5)
+
+    random_saturation_min = trial.suggest_float("random_saturation_min", 0.5, 1)
+    random_saturation_max = trial.suggest_float("random_saturation_max", 1, 1.5)
+
     image_queue = PreprocessingQueue(
         queue=[
             tf.image.random_flip_left_right,
@@ -87,9 +50,13 @@ if __name__ == "__main__":
         arguments=[
             {"seed": seed},
             {"seed": seed},
-            {"max_delta": 0.1, "seed": seed},
-            {"lower": 0.9, "upper": 1.1, "seed": seed},
-            {"lower": 0.9, "upper": 1.1, "seed": seed},
+            {"max_delta": random_brightness, "seed": seed},
+            {"lower": random_contrast_min, "upper": random_contrast_max, "seed": seed},
+            {
+                "lower": random_saturation_min,
+                "upper": random_saturation_max,
+                "seed": seed,
+            },
             # {"max_delta": 0.2, "seed": seed},
         ],
     )
@@ -108,7 +75,7 @@ if __name__ == "__main__":
     dataset_size = None
     training_args = {
         "batch_size": batch_size,
-        "epochs": 35,
+        "epochs": 1,
         # "steps_per_epoch": dataset_size // batch_size,
         "steps_per_epoch": dataset_size,
         # "validation_steps": 40,
@@ -139,28 +106,34 @@ if __name__ == "__main__":
         "batch_size": batch_size,
     }
 
+    lr_factor = trial.suggest_categorical("lr_factor", [0.1, 0.01, 0.001])
+    lr_patience = trial.suggest_int("lr_patience", 1, 5)
+
     reduce_lr = CustomReduceLROnPlateau(
-        monitor="val_loss", factor=0.1, patience=2, min_lr=1E-10
+        monitor="val_loss", factor=lr_factor, patience=lr_patience, min_lr=1e-10
     )
 
     generator = FlowGenerator(**reader_args)
     train_generator = generator.get_generator()
     val_generator = FlowGenerator(**val_reader_args)
+    val_dataset_size = val_generator.get_dataset_size()
     dataset_size = generator.get_dataset_size()
     val_generator = val_generator.get_generator()
+    
+
     training_args["steps_per_epoch"] = dataset_size // batch_size
+    training_args["validation_steps"] = val_dataset_size // batch_size
 
     model.train(
         train_generator,
         **training_args,
         validation_dataset=val_generator,
-        validation_steps=30,
-        callbacks=[reduce_lr],
-        enable_tensorboard=True,
+        callbacks=[reduce_lr]
     )
+    logs = model.get_backup_logs()
+    print(logs)
+    return logs["val_accuracy"]
 
-    if not os.path.isdir(MODEL_FOLDER):
-        os.mkdir(MODEL_FOLDER)
-    model.save(
-        os.path.join(MODEL_FOLDER, MODEL_NAME + "_" + str(MODEL_ITERATION) + ".h5")
-    )
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=100)
