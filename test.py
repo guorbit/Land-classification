@@ -20,6 +20,7 @@ from test_generator import (
     masked_categorical_crossentropy,
 
 )
+from models.constructor import ModelGenerator
 from PIL import Image
 
 if __name__ == "__main__":
@@ -36,6 +37,7 @@ if __name__ == "__main__":
                 "categorical_jackard_loss": loss.categorical_jackard_loss,
                 "hybrid_loss": loss.hybrid_loss,
                 "categorical_ssim_loss": loss.categorical_ssim_loss,
+                "ModelGenerator": ModelGenerator,
 
             },
         )

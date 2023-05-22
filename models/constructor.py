@@ -1,21 +1,201 @@
 import os
+import math
 import tensorflow as tf
+import numpy as np
 from tensorflow import keras
-from tensorflow.keras.layers import Conv2D, BatchNormalization, Activation, MaxPooling2D, Conv2DTranspose, Concatenate, Input,Flatten, Dense, Dropout,ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, AveragePooling2D, GlobalAveragePooling2D, GlobalMaxPooling2D, MaxPool2D, Concatenate, ReLU, LeakyReLU, PReLU, ELU, ThresholdedReLU, Softmax, ThresholdedReLU, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add, Multiply, Average, Maximum, Minimum, Subtract, Dot, ZeroPadding2D, UpSampling2D, Reshape, Permute, Cropping2D, Cropping1D, Lambda, Add
-from tensorflow.keras.applications import VGG16
-from tensorflow.keras.models import Model
+from keras.layers import (
+    Conv2D,
+    BatchNormalization,
+    Activation,
+    MaxPooling2D,
+    Conv2DTranspose,
+    Concatenate,
+    Input,
+    Flatten,
+    Dense,
+    Dropout,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    AveragePooling2D,
+    GlobalAveragePooling2D,
+    GlobalMaxPooling2D,
+    MaxPool2D,
+    Concatenate,
+    ReLU,
+    LeakyReLU,
+    PReLU,
+    ELU,
+    ThresholdedReLU,
+    Softmax,
+    ThresholdedReLU,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+    Multiply,
+    Average,
+    Maximum,
+    Minimum,
+    Subtract,
+    Dot,
+    ZeroPadding2D,
+    UpSampling2D,
+    Reshape,
+    Permute,
+    Cropping2D,
+    Cropping1D,
+    Lambda,
+    Add,
+)
+from keras.applications import VGG16
+from keras.models import Model
+import itertools
 from utilities.segmentation_utils.flowreader import FlowGenerator
 from constants import NUM_CLASSES, TRAINING_DATA_PATH, TEST_DATA_PATH
 
 
-class ModelGenerator_old():
-    pretrained_url = "https://github.com/fchollet/deep-learning-models/" \
-                     "releases/download/v0.1/" \
-                     "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+@DeprecationWarning
+class ModelGenerator_old:
+    pretrained_url = (
+        "https://github.com/fchollet/deep-learning-models/"
+        "releases/download/v0.1/"
+        "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    )
     pretrained_url_top = "https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
     VGG_Weights_path = tf.keras.utils.get_file(
-            pretrained_url.split("/")[-1], pretrained_url)
-    IMAGE_ORDERING = 'channels_last'
+        pretrained_url.split("/")[-1], pretrained_url
+    )
+    IMAGE_ORDERING = "channels_last"
     name = None
     encoder = None
     decoder = None
@@ -27,8 +207,8 @@ class ModelGenerator_old():
     levels = None
     loss_fn = None
 
-    def __init__(self,encoder,decoder, input_shape, n_classes):
-        '''
+    def __init__(self, encoder, decoder, input_shape, n_classes):
+        """
         Initializes the model generator object
 
         Parameters
@@ -41,8 +221,8 @@ class ModelGenerator_old():
         Returns
         -------
         None
-        '''
-        self.name = encoder+"_"+decoder
+        """
+        self.name = encoder + "_" + decoder
         self.encoder = encoder
         self.decoder = decoder
         self.input_shape = input_shape
@@ -52,15 +232,16 @@ class ModelGenerator_old():
 
     class accuracy_drop_callback(keras.callbacks.Callback):
         previous_loss = None
+
         def on_epoch_end(self, epoch, logs={}):
-            if not self.previous_loss is None and logs.get('loss') > self.previous_loss:
+            if not self.previous_loss is None and logs.get("loss") > self.previous_loss:
                 print("Stopping training as loss has gotten worse")
                 self.model.stop_training = True
             else:
-                self.previous_loss = logs.get('loss')
+                self.previous_loss = logs.get("loss")
 
     def summary(self):
-        '''
+        """
         Prints the summary of the model
 
         Parameters
@@ -70,12 +251,21 @@ class ModelGenerator_old():
         Returns
         -------
         None
-        '''
+        """
 
         return self.model.summary()
 
-    def fit(self, training_args, tuning_args, reader_args,val_reader_args, dataset_size = None, transfer_learning = False,enabled_blocks = None):
-        '''
+    def fit(
+        self,
+        training_args,
+        tuning_args,
+        reader_args,
+        val_reader_args,
+        dataset_size=None,
+        transfer_learning=False,
+        enabled_blocks=None,
+    ):
+        """
         Starts the training of the model
 
         Parameters
@@ -86,7 +276,7 @@ class ModelGenerator_old():
         Returns
         -------
         None
-        '''
+        """
         self.model.learning_rate = 0.0001
         enabled = []
         if transfer_learning:
@@ -96,50 +286,57 @@ class ModelGenerator_old():
             if enabled_blocks is None:
                 enabled_blocks = [True] * len(self.base_model.layers)
 
-
         print("Enabled blocks: ", enabled_blocks)
         self.compile(self.loss_fn)
-        generator = FlowGenerator(
-            **reader_args
-        )
+        generator = FlowGenerator(**reader_args)
         train_generator = generator.get_generator()
-        val_generator = FlowGenerator(
-            **val_reader_args
-        )
+        val_generator = FlowGenerator(**val_reader_args)
         val_generator = val_generator.get_generator()
 
         if dataset_size is None:
             dataset_size = generator.get_dataset_size()
-            training_args["steps_per_epoch"] = dataset_size // training_args["batch_size"]
+            training_args["steps_per_epoch"] = (
+                dataset_size // training_args["batch_size"]
+            )
             tuning_args["steps_per_epoch"] = dataset_size // tuning_args["batch_size"]
             print("Dataset size: ", dataset_size)
             print("Steps per epoch: ", training_args["steps_per_epoch"])
 
-        self.model.fit(train_generator,**training_args,validation_data = val_generator, validation_steps = 50, callbacks=[self.accuracy_drop_callback()])
+        self.model.fit(
+            train_generator,
+            **training_args,
+            validation_data=val_generator,
+            validation_steps=50,
+            callbacks=[self.accuracy_drop_callback()],
+        )
         if transfer_learning:
             counter = 0
             for i in reversed(self.levels):
                 if enabled_blocks[counter]:
                     print("Tuning block: ", len(self.levels) - counter)
                     i.trainable = True
-                    self.model.learning_rate = 0.000000001 * (10 ** -counter)
-                    self.model.compile(loss = self.loss_fn, optimizer = self.optimizer, metrics = ["accuracy"])
-                    tuning_generator = FlowGenerator(
-                        **reader_args
+                    self.model.learning_rate = 0.000000001 * (10**-counter)
+                    self.model.compile(
+                        loss=self.loss_fn,
+                        optimizer=self.optimizer,
+                        metrics=["accuracy"],
                     )
-                 
-                    val_generator = FlowGenerator(
-                        **val_reader_args
-                    )
+                    tuning_generator = FlowGenerator(**reader_args)
+
+                    val_generator = FlowGenerator(**val_reader_args)
                     val_generator = val_generator.get_generator()
                     tuning_generator = tuning_generator.get_generator()
-                    self.model.fit(tuning_generator, **tuning_args,validation_data = val_generator, validation_steps = 50, callbacks=[self.accuracy_drop_callback()])
+                    self.model.fit(
+                        tuning_generator,
+                        **tuning_args,
+                        validation_data=val_generator,
+                        validation_steps=50,
+                        callbacks=[self.accuracy_drop_callback()],
+                    )
                 counter += 1
 
-    
-
     def predict(self):
-        '''
+        """
         Predicts the output of the model
 
         Parameters
@@ -149,11 +346,11 @@ class ModelGenerator_old():
         Returns
         -------
         None
-        '''
+        """
         self.model.predict()
 
     def evaluate(self):
-        '''
+        """
         Evaluates the model
 
         Parameters
@@ -163,12 +360,14 @@ class ModelGenerator_old():
         Returns
         -------
         None
-        
-        '''
+
+        """
         self.model.evaluate()
 
-    def compile(self,loss_fn, optimizer=tf.optimizers.SGD(momentum=0.8), metrics=["accuracy"]):
-        '''
+    def compile(
+        self, loss_fn, optimizer=tf.optimizers.SGD(momentum=0.8), metrics=["accuracy"]
+    ):
+        """
         Compiles the model
 
         Parameters
@@ -180,13 +379,13 @@ class ModelGenerator_old():
         Returns
         -------
         None
-        '''
+        """
         self.loss_fn = loss_fn
         self.optimizer = optimizer
-        self.model.compile(optimizer = optimizer,loss = loss_fn, metrics = metrics)
+        self.model.compile(optimizer=optimizer, loss=loss_fn, metrics=metrics)
 
     def save(self, path):
-        '''
+        """
         Saves the model
 
         Parameters
@@ -196,11 +395,11 @@ class ModelGenerator_old():
         Returns
         -------
         None
-        '''
+        """
         self.model.save(path)
 
     def output_shape(self):
-        '''
+        """
         Returns the output shape of the model
 
         Parameters
@@ -210,52 +409,49 @@ class ModelGenerator_old():
         Returns
         -------
         tuple: Output shape of the model
-        '''
+        """
         return self.model.output_shape
-    
+
 
 class ModelGenerator(Model):
-   
     name = None
     n_classes = None
     base_model = None
     levels = None
     loss_fn = None
     optimizer = None
-    acc_metric = keras.metrics.CategoricalAccuracy()
+    acc_metric = keras.metrics.CategoricalAccuracy(name="accuracy")
     loss_tracker = keras.metrics.Mean(name="loss")
-    def __init__(self,name,*args, **kwargs):
-        super(ModelGenerator,self).__init__(*args, **kwargs)
+    eval_acc_metric = keras.metrics.CategoricalAccuracy(name="val_accuracy")
+    eval_loss_tracker = keras.metrics.Mean(name="val_loss")
+    # metrics = None
+
+    def __init__(self, name, *args, **kwargs):
+        super(ModelGenerator, self).__init__(*args, **kwargs)
         self.name = name
-        
 
-
-    class accuracy_drop_callback(keras.callbacks.Callback):
-        previous_loss = None
-        def on_epoch_end(self, epoch, logs={}):
-            if not self.previous_loss is None and logs.get('loss') > self.previous_loss:
-                print("Stopping training as loss has gotten worse")
-                self.model.stop_training = True
-            else:
-                self.previous_loss = logs.get('loss')
-
-
-    def compile(self,*args, **kwargs):
+    def compile(self, *args, **kwargs):
         self.loss_fn = kwargs["loss"]
         self.optimizer = kwargs["optimizer"]
-        super(ModelGenerator,self).compile(*args, **kwargs)
-
+        kwargs["metrics"] = kwargs["metrics"] + [
+            self.acc_metric,
+            self.loss_tracker,
+            self.eval_acc_metric,
+            self.eval_loss_tracker,
+        ]
+        super(ModelGenerator, self).compile(*args, **kwargs)
 
     def save(self, path):
-        self.model.save(path)
+        super(ModelGenerator, self).save(path)
 
+    @tf.function
     def train_step(self, data):
         x, y = data
 
         with tf.GradientTape() as tape:
             y_pred = self(x, training=True)  # Forward pass
             # Compute our own loss
-            loss = self.loss_fn(y, y_pred)
+            loss = self.compiled_loss(y, y_pred)
             loss = tf.reduce_mean(loss)
 
         # Compute gradients
@@ -268,35 +464,112 @@ class ModelGenerator(Model):
         # Compute our own metrics
         self.loss_tracker.update_state(loss)
         self.acc_metric.update_state(y, y_pred)
-        return {"loss": self.loss_tracker.result(), "mae": self.acc_metric.result()}
-    
-    # def custom_loop(self,dataset,epochs=1,batch_size=32,learning_rate=0.001):
-        
-    #     for epoch in range(epochs):
-    #         print("Epoch: ",epoch+1)
-    #         for dataset_idx, x, y in enumerate(dataset):
-    #             with tf.GradientTape() as tape:
-    #                 y_pred = self.model(x)
-    #                 loss = self.loss_fn(y, y_pred)
-                   
-    #             gradient = tape.gradient(loss, self.model.trainable_weights)
-    #             self.optimizer.apply_gradients(zip(gradient, self.model.trainable_weights))
-    #             acc_metric.update_state(y, y_pred)
+        return self.loss_tracker.result(), self.acc_metric.result()
+
+    @tf.function
+    def eval_step(self, data):
+        x, y = data
+        y = tf.convert_to_tensor(y)
+
+        y_pred = self(x, training=False)
+        tf.convert_to_tensor(y_pred)
+        loss = self.compiled_loss(y, y_pred)
+        loss = tf.reduce_mean(loss)
+
+        self.eval_loss_tracker.update_state(loss)
+        self.eval_acc_metric.update_state(y, y_pred)
+
+        return self.eval_loss_tracker.result(), self.eval_acc_metric.result()
+
+    def train(
+        self,
+        dataset,
+        epochs=1,
+        batch_size=32,
+        learning_rate=0.001,
+        steps_per_epoch=512,
+        validation_dataset=None,
+        validation_steps=50,
+        callbacks=[],
+    ):
+        self.optimizer.learning_rate = learning_rate
+        logs = {}
+        metrics = [
+            self.loss_tracker,
+            self.acc_metric,
+            self.eval_loss_tracker,
+            self.eval_acc_metric,
+        ]
+        for callback in callbacks:
+            callback.set_model(self)
+            callback.set_params({"epochs": epochs, "verbose": 1})
+
+        for callback in callbacks:  # on train begin callbacks
+            callback.on_train_begin()
+
+        for epoch in range(epochs):
+            for callback in callbacks:  # on epoch begin callbacks
+                callback.on_epoch_begin(epoch)
+
+            tf.print(f"\nEpoch: {epoch+1}/{epochs}")
+
+            pbar = tf.keras.utils.Progbar(
+                target=steps_per_epoch, stateful_metrics=["time_to_complete"]
+            )
+
+            for dataset_idx, data in enumerate(
+                itertools.islice(dataset, steps_per_epoch)
+            ):
+                # for batch_idx, mini_batch in enumerate(data):
+
+                loss, accuracy = self.train_step(data)
+                pbar.update(
+                    dataset_idx + 1, values=[("loss", loss), ("accuracy", accuracy)]
+                )
+                for callback in callbacks:  # on batch end callbacks
+                    callback.on_train_batch_end(dataset_idx)
+
+            pbar = tf.keras.utils.Progbar(target=validation_steps)
+            if not validation_dataset is None:
+                tf.print("Performing validation")
+                for dataset_idx, data in enumerate(
+                    itertools.islice(validation_dataset, validation_steps)
+                ):
+                    loss, accuracy = self.eval_step(data)
+                    pbar.update(
+                        dataset_idx + 1,
+                        values=[("val_loss", loss), ("val_accuracy", accuracy)],
+                    )
+
+            for metric in metrics:
+                if hasattr(metric, "result"):
+                    logs[metric.name] = metric.result().numpy()
+                    metric.reset_states()
+                else:
+                    logs[metric.name] = metric.numpy()
+
+            for callback in callbacks:  # on epoch end callbacks
+                callback.on_epoch_end(epoch, logs=logs)
+
+        for callback in callbacks:  # on train end callbacks
+            callback.on_train_end()
 
 
-class VGG16_UNET():
-    pretrained_url = "https://github.com/fchollet/deep-learning-models/" \
-                     "releases/download/v0.1/" \
-                     "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+class VGG16_UNET:
+    pretrained_url = (
+        "https://github.com/fchollet/deep-learning-models/"
+        "releases/download/v0.1/"
+        "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    )
     pretrained_url_top = "https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
     VGG_Weights_path = tf.keras.utils.get_file(
-            pretrained_url.split("/")[-1], pretrained_url)
-    IMAGE_ORDERING = 'channels_last'
+        pretrained_url.split("/")[-1], pretrained_url
+    )
+    IMAGE_ORDERING = "channels_last"
     n_classes = None
 
-
-    def __init__(self, input_shape,output_shape, n_classes):
-        '''
+    def __init__(self, input_shape, output_shape, n_classes):
+        """
         Initializes a VGG16 Unet Segmentation Class
 
         Parameters
@@ -307,15 +580,15 @@ class VGG16_UNET():
         Returns
         -------
         None
-        '''
+        """
         self.n_classes = n_classes
         print("Initializing VGG16 Unet")
-        self.create_model(input_shape=input_shape,output_shape=output_shape, load_weights = True)
-        
+        self.create_model(
+            input_shape=input_shape, output_shape=output_shape, load_weights=True
+        )
 
-
-    def create_model(self,input_shape,output_shape, load_weights = False):
-        '''
+    def create_model(self, input_shape, output_shape, load_weights=False):
+        """
         Initializes a VGG16 Unet Segmentation model
 
         Parameters
@@ -325,8 +598,9 @@ class VGG16_UNET():
         Returns
         -------
         None
-        '''
-        
+        """
+
+        # fmt: off
         MERGE_AXIS = -1
             
         img_input = Input(shape=input_shape)
@@ -360,7 +634,7 @@ class VGG16_UNET():
         x = Dropout(0.0125)(x)
         f4 = x
         
-        vgg = Model(img_input, x)
+        vgg = ModelGenerator("vgg",inputs = img_input,outputs = x)
 
         if load_weights:   
             vgg.load_weights(self.VGG_Weights_path,by_name=True,skip_mismatch=True)
@@ -368,7 +642,9 @@ class VGG16_UNET():
         self.base_model = vgg
         #vgg.learning_rate = 0.001
         self.levels = [f1, f2, f3, f4]
+        vgg.trainable = False
         
+
         o = f4
 
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
@@ -405,20 +681,17 @@ class VGG16_UNET():
 
         
         model = ModelGenerator("vgg_unet", inputs = img_input, outputs = o)
-
+        model.levels = [f1, f2, f3, f4]
+        
         model.outputWidth = o_shape[2]
         model.outputHeight = o_shape[1]
         #model.learning_rate = 0.001
         self.model = model
-    
+   
+        # fmt: on
+
     def get_model(self):
         return self.model
 
     def get_base_model(self):
         return self.base_model
-    
-
-
-
-
-

@@ -125,9 +125,11 @@ class Semantic_loss_functions(object):
                 for j in range(16)
             ]
         )
-        #tf.print(categorical_ssim)
-        categorical_ssim = tf.where(tf.math.is_nan(categorical_ssim), 0., categorical_ssim)
-        #tf.print(categorical_ssim)
+        # tf.print(categorical_ssim)
+        categorical_ssim = tf.where(
+            tf.math.is_nan(categorical_ssim), 0.0, categorical_ssim
+        )
+        # tf.print(categorical_ssim)
         # convert to loss
         categorical_ssim = 1 - categorical_ssim
 
@@ -141,7 +143,7 @@ class Semantic_loss_functions(object):
 
         # swap axes 0,1
         categorical_ssim = tf.transpose(categorical_ssim, perm=[1, 0])
-        
+
         return categorical_ssim
 
     def hybrid_loss(self, y_true, y_pred):
@@ -152,12 +154,9 @@ class Semantic_loss_functions(object):
         jackard_loss = self.categorical_jackard_loss(y_true, y_pred)
         focal_loss = self.categorical_focal_loss(y_true, y_pred)
         ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
-        
+
         jf = focal_loss + jackard_loss + ssim_loss
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))
         return (jf) * self.weights
-
-
-
