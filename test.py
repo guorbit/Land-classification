@@ -1,6 +1,7 @@
 from shape import read_images, IMAGE_SIZE
 from keras.models import load_model
 from keras import backend as K
+from keras.utils import plot_model
 from matplotlib import pyplot as plt
 from constants import (
     MODEL_NAME,
@@ -15,8 +16,8 @@ import numpy as np
 import os
 import tensorflow as tf
 from models.loss_constructor import Semantic_loss_functions
-from test_generator import dice_coef_9cat_loss
-from test_generator import (
+from train import dice_coef_9cat_loss
+from train import (
     masked_categorical_crossentropy,
 
 )
@@ -42,6 +43,7 @@ if __name__ == "__main__":
             },
         )
         model.training = False
+
         n = len(os.listdir(os.path.join(TEST_DATA_PATH, "x", "img")))
         images, masks = read_images(os.path.join(TEST_DATA_PATH, "x", "img"))
        

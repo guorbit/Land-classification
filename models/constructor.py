@@ -451,12 +451,13 @@ class ModelGenerator(Model):
     @tf.function
     def train_step(self, data):
         x, y = data
-
+        y = tf.convert_to_tensor(y)
         with tf.GradientTape() as tape:
             y_pred = self(x, training=True)  # Forward pass
             # Compute our own loss
+
             loss = self.compiled_loss(y, y_pred)
-            loss = tf.reduce_mean(loss)
+            # loss = tf.reduce_mean(loss)
 
         # Compute gradients
         trainable_vars = self.trainable_variables
@@ -511,7 +512,7 @@ class ModelGenerator(Model):
 
         for callback in callbacks:  # on train begin callbacks
             callback.on_train_begin()
-
+        dataset.set_mini_batch_size(batch_size)
         for epoch in range(epochs):
             for callback in callbacks:  # on epoch begin callbacks
                 callback.on_epoch_begin(epoch)
@@ -526,7 +527,7 @@ class ModelGenerator(Model):
                 itertools.islice(dataset, steps_per_epoch)
             ):
                 # for batch_idx, mini_batch in enumerate(data):
-
+     
                 loss, accuracy = self.train_step(data)
                 pbar.update(
                     dataset_idx + 1, values=[("loss", loss), ("accuracy", accuracy)]
@@ -536,9 +537,11 @@ class ModelGenerator(Model):
 
             pbar = tf.keras.utils.Progbar(target=validation_steps)
             if not validation_dataset is None:
+                validation_dataset.set_mini_batch_size(batch_size)
                 tf.print("Performing validation")
+                validation_cycle = itertools.cycle(validation_dataset)
                 for dataset_idx, data in enumerate(
-                    itertools.islice(validation_dataset, validation_steps)
+                    itertools.islice(validation_cycle, validation_steps)
                 ):
                     loss, accuracy = self.eval_step(data)
                     pbar.update(
@@ -556,7 +559,7 @@ class ModelGenerator(Model):
             self.backup_logs = logs.copy()
             for callback in callbacks:  # on epoch end callbacks
                 callback.on_epoch_end(epoch, logs=logs)
-
+            # dataset.on_epoch_end()
         for callback in callbacks:  # on train end callbacks
             callback.on_train_end()
 
@@ -595,7 +598,7 @@ class VGG16_UNET:
 
     def create_model(self, input_shape, output_shape, load_weights=False):
         """
-        Initializes a VGG16 Unet Segmentation model
+        Initializes a VGG16 Unet Segmentation model forward pass definition
 
         Parameters
         ----------
@@ -618,24 +621,24 @@ class VGG16_UNET:
         x = Dropout(0.05)(x)
         f1 = x
         # Block 2
-        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
-        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
+        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=self.IMAGE_ORDERING)(x)
         x = AveragePooling2D((2, 2), strides=(2, 2), name='block2_avg_pool', data_format=self.IMAGE_ORDERING)(x)
         x = Dropout(0.05)(x)
         f2 = x
 
         # Block 3
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=self.IMAGE_ORDERING, dilation_rate = 4)(x)
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2', data_format=self.IMAGE_ORDERING, dilation_rate = 4)(x)
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3', data_format=self.IMAGE_ORDERING, dilation_rate = 4)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
+        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
         x = AveragePooling2D((2, 2), strides=(2, 2), name='block3_avg_pool', data_format=self.IMAGE_ORDERING)(x)
         x = Dropout(0.025)(x)
         f3 = x
 
         # Block 4
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1', data_format=self.IMAGE_ORDERING, dilation_rate = 8)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2', data_format=self.IMAGE_ORDERING, dilation_rate = 8)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3', data_format=self.IMAGE_ORDERING, dilation_rate = 8)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
+        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
         x = AveragePooling2D((2, 2), strides=(2, 2), name='block4_avg_pool', data_format=self.IMAGE_ORDERING)(x)
         x = Dropout(0.0125)(x)
         f4 = x
@@ -648,7 +651,12 @@ class VGG16_UNET:
         self.base_model = vgg
         #vgg.learning_rate = 0.001
         self.levels = [f1, f2, f3, f4]
+        
         vgg.trainable = False
+
+        for layer in vgg.layers[-4:None]:
+            print("Setting layer trainable: ", layer)
+            layer.trainable = True
         
 
         o = f4
@@ -681,7 +689,7 @@ class VGG16_UNET:
 
         o = Conv2D(self.n_classes, (3, 3), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
         o_shape = Model(img_input, o).output_shape  
-        o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
+        # o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
         # o = (Permute((2, 1)))(o)
         o = (Activation('softmax'))(o)
 

@@ -19,11 +19,11 @@ class Semantic_loss_functions(object):
         weights = pd.read_csv(
             os.path.join(TRAINING_DATA_PATH, "distribution.csv"), header=None
         )
-        n = len(os.listdir(os.path.join(TRAINING_DATA_PATH, "x", "img")))
+        n = len(os.listdir(os.path.join(TRAINING_DATA_PATH, "x")))
         for i in range(NUM_CLASSES):
             # tf-idf like calculation
             # self.weights[i] = math.log10(weights.iloc[i, 1]) * math.log10(n/weights.iloc[i, 2])
-            self.weights[i] = math.log(weights.iloc[i, 1])
+            self.weights[i] = math.log10(weights.iloc[i, 1])
         self.weights = 1 - tf.nn.softmax(self.weights)
         join_str = ", "
         print(f"Class weights initialized as: {join_str.join([str(round(x,4)) for x in K.eval(self.weights)])}")
@@ -39,7 +39,7 @@ class Semantic_loss_functions(object):
         cross_entropy = -y_true * K.log(y_pred)
         weight = alpha * y_true * K.pow((1 - y_pred), gamma)
         loss = weight * cross_entropy
-        loss = K.sum(loss, axis=1)
+        loss = K.sum(loss, axis=(1,2))
         smooth = 1e-3
         loss = loss * smooth
         return loss
@@ -50,8 +50,8 @@ class Semantic_loss_functions(object):
         Jackard loss to minimize. Pass to model as loss during compile statement
         """
 
-        intersection = K.sum(K.abs(y_true * y_pred), axis=-2)
-        sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-2)
+        intersection = K.sum(K.abs(y_true * y_pred), axis=(-3,-2))
+        sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=(-3,-2))
         jac = (intersection) / (sum_ - intersection)
 
         return 1 - jac
@@ -102,6 +102,7 @@ class Semantic_loss_functions(object):
         categorical_ssim = tf.transpose(categorical_ssim, perm=[1, 0])
         return categorical_ssim
 
+    @tf.function
     def ssim_loss(self, y_true, y_pred, window_size=(4, 4)):
         """
         SSIM loss to minimize. Pass to model as loss during compile statement
@@ -165,4 +166,4 @@ class Semantic_loss_functions(object):
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))
-        return (jf) * self.weights
+        return jf * self.weights
