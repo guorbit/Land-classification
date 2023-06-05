@@ -11,172 +11,13 @@ from keras.layers import (
     Conv2DTranspose,
     Concatenate,
     Input,
-    Flatten,
-    Dense,
     Dropout,
     ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    AveragePooling2D,
-    GlobalAveragePooling2D,
-    GlobalMaxPooling2D,
-    MaxPool2D,
     Concatenate,
     ReLU,
-    LeakyReLU,
-    PReLU,
-    ELU,
-    ThresholdedReLU,
-    Softmax,
-    ThresholdedReLU,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
     ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
-    Multiply,
-    Average,
-    Maximum,
-    Minimum,
-    Subtract,
-    Dot,
-    ZeroPadding2D,
-    UpSampling2D,
-    Reshape,
-    Permute,
-    Cropping2D,
-    Cropping1D,
-    Lambda,
-    Add,
 )
+import tensorflow_addons as tfa
 from keras.applications import VGG16
 from keras.models import Model
 import itertools
@@ -687,17 +528,25 @@ class VGG16_UNET:
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_avg_pool', data_format=self.IMAGE_ORDERING)(x)
         x = Dropout(0.0125)(x)
         
-        x = Conv2D(512, (3, 3), padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING)(x)
-        x = BatchNormalization()(x)
-        x = ReLU()(x)
-        x = Conv2D(512, (3, 3), padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
-        x = BatchNormalization()(x)
-        x = ReLU()(x)
-        x = Conv2D(512, (3, 3), padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
-        x = BatchNormalization()(x)
-        x = ReLU()(x)
-        f5 = x
-        
+        # Block 5 pyramid pooling block
+        p1 = Conv2D(512, (1, 1), padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING)(x)
+        p1 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p1)
+        p1 = ReLU()(p1)
+
+        p2 = Conv2D(512, (3, 3), padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=6)(x)
+        p2 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p2)
+        p2 = ReLU()(p2)
+
+        p3 = Conv2D(512, (3, 3), padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=12)(x)
+        p3 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p3)
+        p3 = ReLU()(p3)
+
+        p4 = Conv2D(512, (3, 3), padding='same', name='block5_conv4', data_format=self.IMAGE_ORDERING, dilation_rate=18)(x)
+        p4 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p4)
+        p4 = ReLU()(p4)
+
+        f5 = Concatenate(axis=MERGE_AXIS)([p1, p2, p3, p4,x])
+        x = f5
         vgg = ModelGenerator("vgg",inputs = img_input,outputs = x)
 
         if load_weights:   
@@ -786,20 +635,7 @@ class VGG16_UNET:
    
         # fmt: on
 
-    def conv_block(self,input, num_filters):
-        x = Conv2D(num_filters, 3, padding="same")(input)
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
-        x = Conv2D(num_filters, 3, padding="same")(x)
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
-        return x
-
-    def decoder_block(self,input, skip_features, num_filters):
-        x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
-        x = Concatenate()([x, skip_features])
-        x = self.conv_block(x, num_filters)
-        return x
+    
 
     def get_model(self):
         return self.model
