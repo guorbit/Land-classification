@@ -7,7 +7,7 @@ ARCHIVE_TRAIN_DATA_PATH = os.path.join("archive", "train")
 ARCHIVE_VAL_DATA_PATH = os.path.join("archive", "val")
 ARCHIVE_TEST_DATA_PATH = os.path.join("archive", "test")
 
-MODEL_ITERATION = 5
+MODEL_ITERATION = 6
 MODEL_NAME = "unknown"
 MODEL_FOLDER = "exported_models"
 MODEL_LIBRARY = "models"

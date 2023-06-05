@@ -510,6 +510,7 @@ class ModelGenerator(Model):
         enable_tensorboard=False,
     ):
         self.optimizer.learning_rate = learning_rate
+        self.val_data = validation_dataset
         logs = {}
         metrics = [
             self.loss_tracker,
@@ -768,7 +769,7 @@ class VGG16_UNET:
         o = (Activation('relu'))(o)
         o = (Dropout(0.1))(o)
 
-        o = Conv2D(self.n_classes, (3, 3), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
+        o = Conv2D(self.n_classes, (1, 1), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
         o_shape = Model(img_input, o).output_shape  
         # o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
         # o = (Permute((2, 1)))(o)

@@ -2,7 +2,7 @@ import sys
 from models.constructor import ModelGenerator, VGG16_UNET
 from constants import TRAINING_DATA_PATH, NUM_CLASSES, TEST_DATA_PATH
 from models.loss_constructor import Semantic_loss_functions
-from models.callbacks import accuracy_drop_callback, CustomReduceLROnPlateau,SavePredictedMaskCallback
+from models.callbacks import accuracy_drop_callback, CustomReduceLROnPlateau
 import tensorflow as tf
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     loss_fn = loss_object.hybrid_loss
 
     model.compile(
-        optimizer=keras.optimizers.SGD(momentum=0.5),
+        optimizer=keras.optimizers.Adam(learning_rate=0.001),
         loss=loss_fn,
         metrics=["accuracy"],
     )

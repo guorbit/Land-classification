@@ -16,6 +16,7 @@ from constants import (
     MODEL_FOLDER,
 )
 
+
 class accuracy_drop_callback(keras.callbacks.Callback):
     previous_loss = None
     def on_epoch_end(self, epoch, logs={}):
@@ -70,27 +71,15 @@ class CustomReduceLROnPlateau(keras.callbacks.ReduceLROnPlateau):
             self.model.optimizer.set_weights(optimizer_weights)
 
 
-class SavePredictedMaskCallback(keras.callbacks.Callback):
-    def __init__(self,dir,step = 1, *args, **kwargs):
-        super(SavePredictedMaskCallback,self).__init__(*args, **kwargs)
-        self.dir = dir
-        self.step = step
-    def on_epoch_end(self, epoch, logs={}):
-        if epoch % self.step == 0:
+class SavePredictionsToTensorBoard(keras.callbacks.Callback):
 
-            prediction = self.model.predict(self.model.validation_data[0])
-            prediction = np.argmax(prediction, axis=-1)
-            pred_rgb = np.zeros(
-                (
-                    MODELS[MODEL_NAME]["output_size"][0],
-                    MODELS[MODEL_NAME]["output_size"][1],
-                    3,
-                )
-            )
-            for i in range(0, prediction.shape[0]):
-                for j in range(0, prediction.shape[1]):
-                    pred_rgb[i, j, :] = LABEL_MAP[prediction[i, j]]
+
+    def on_epoch_end(self, epoch, logs=None):
+        if self.model.val_data is not None:
+            self.model.predict(self.model.val_data[0])
+            predictions = self.model.predict(self.X_test)
             
-            plt.imshow(pred_rgb / 255)
-            plt.axis("off")
-            plt.savefig(os.path.join(self.dir,epoch+"_test.png"), bbox_inches="tight")
+
+            with tf.summary.create_file_writer(self.log_dir).as_default():
+                for i in range(len(self.model.output_shape)):
+                    tf.summary.image(predictions[0], step=0, max_outputs=1)

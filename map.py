@@ -53,5 +53,5 @@ MODEL_MAP = {
         "image_size": (384, 384),
         "output_size": (384, 384),
     },
-    "unknown": {"model": None, "image_size": (512, 512), "output_size": (256, 256)},
+    "unknown": {"model": None, "image_size": (512, 512), "output_size": (512, 512)},
 }

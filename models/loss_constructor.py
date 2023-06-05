@@ -27,8 +27,9 @@ class Semantic_loss_functions(object):
         self.weights = 1 - tf.nn.softmax(self.weights)
         # self.weights = 1 - tf.nn.softmax(self.weights - np.mean(self.weights))
         join_str = ", "
-        print(f"Class weights initialized as: {join_str.join([str(round(x,4)) for x in K.eval(self.weights)])}")
-
+        print(
+            f"Class weights initialized as: {join_str.join([str(round(x,4)) for x in K.eval(self.weights)])}"
+        )
 
     @tf.function
     def categorical_focal_loss(self, y_true, y_pred):
@@ -40,7 +41,7 @@ class Semantic_loss_functions(object):
         cross_entropy = -y_true * K.log(y_pred)
         weight = alpha * y_true * K.pow((1 - y_pred), gamma)
         loss = weight * cross_entropy
-        loss = K.sum(loss, axis=(1,2))
+        loss = K.sum(loss, axis=(1, 2))
         smooth = 1e-3
         loss = loss * smooth
         return loss
@@ -51,8 +52,8 @@ class Semantic_loss_functions(object):
         Jackard loss to minimize. Pass to model as loss during compile statement
         """
 
-        intersection = K.sum(K.abs(y_true * y_pred), axis=(-3,-2))
-        sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=(-3,-2))
+        intersection = K.sum(K.abs(y_true * y_pred), axis=(-3, -2))
+        sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=(-3, -2))
         jac = (intersection) / (sum_ - intersection)
 
         return 1 - jac
@@ -64,13 +65,21 @@ class Semantic_loss_functions(object):
         """
         tile_size = y_true.shape[1] // window_size[0]
         # calculate ssim for each channel seperately
-        y_true = tf.reshape(y_true, [-1, window_size[0], tile_size, window_size[1], tile_size, 7])
+        y_true = tf.reshape(
+            y_true, [-1, window_size[0], tile_size, window_size[1], tile_size, 7]
+        )
         y_true = tf.transpose(y_true, perm=[0, 1, 3, 2, 4, 5])
-        y_true = tf.reshape(y_true, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7])
+        y_true = tf.reshape(
+            y_true, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7]
+        )
 
-        y_pred = tf.reshape(y_pred, [-1, window_size[0], tile_size, window_size[1], tile_size, 7])
+        y_pred = tf.reshape(
+            y_pred, [-1, window_size[0], tile_size, window_size[1], tile_size, 7]
+        )
         y_pred = tf.transpose(y_pred, perm=[0, 1, 3, 2, 4, 5])
-        y_pred = tf.reshape(y_pred, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7])
+        y_pred = tf.reshape(
+            y_pred, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7]
+        )
 
         # sliding window ssim on separate channels
         categorical_ssim = tf.convert_to_tensor(
@@ -152,9 +161,13 @@ class Semantic_loss_functions(object):
         # swap axes 0,1
         categorical_ssim = tf.transpose(categorical_ssim, perm=[1, 0])
 
-        categorical_ssim = tf.where(tf.math.is_nan(categorical_ssim), 1.0, categorical_ssim)
+        categorical_ssim = tf.where(
+            tf.math.is_nan(categorical_ssim), 1.0, categorical_ssim
+        )
 
         return categorical_ssim
+
+
 
     @tf.function
     def hybrid_loss(self, y_true, y_pred):
@@ -164,9 +177,9 @@ class Semantic_loss_functions(object):
         """
         jackard_loss = self.categorical_jackard_loss(y_true, y_pred)
         focal_loss = self.categorical_focal_loss(y_true, y_pred)
-        ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
 
-        jf = focal_loss + jackard_loss + ssim_loss
+
+        jf = focal_loss + jackard_loss
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))
