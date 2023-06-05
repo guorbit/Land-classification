@@ -167,7 +167,26 @@ class Semantic_loss_functions(object):
 
         return categorical_ssim
 
+    @tf.function
+    def ssim_loss_combined(self, y_true, y_pred):
+        y_true = tf.argmax(y_true, axis=-1)
+        y_pred = tf.argmax(y_pred, axis=-1)
 
+        mask_true = tf.math.logical_not(tf.math.logical_and(y_true >= 0, y_true <= 7))
+        mask_pred = tf.math.logical_not(tf.math.logical_and(y_pred >= 0, y_pred <= 7))
+        y_true = tf.where(mask_true, tf.zeros_like(y_true), y_true)
+        y_pred = tf.where(mask_pred, tf.zeros_like(y_pred), y_pred)
+        ssim = tf.image.ssim( # try ssim_multiscale
+            y_true,
+            y_pred,
+            max_val=7,
+            filter_size=2, # try 3
+        )
+
+        ssim_loss = 1 - tf.reduce_mean(ssim)
+        ssim_loss = tf.where(tf.math.is_nan(ssim_loss), 0.0, ssim_loss)
+        
+        return ssim_loss
 
     @tf.function
     def hybrid_loss(self, y_true, y_pred):
@@ -177,10 +196,10 @@ class Semantic_loss_functions(object):
         """
         jackard_loss = self.categorical_jackard_loss(y_true, y_pred)
         focal_loss = self.categorical_focal_loss(y_true, y_pred)
-
+        ssim_loss = self.ssim_loss_combined(y_true, y_pred)
 
         jf = focal_loss + jackard_loss
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))
-        return jf * self.weights
+        return jf * self.weights + ssim_loss
