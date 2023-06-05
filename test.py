@@ -2,6 +2,7 @@ from shape import read_images, IMAGE_SIZE
 from keras.models import load_model
 from keras import backend as K
 from keras.utils import plot_model
+from sklearn.metrics import precision_recall_fscore_support
 from matplotlib import pyplot as plt
 from constants import (
     MODEL_NAME,
@@ -46,7 +47,8 @@ if __name__ == "__main__":
 
         n = len(os.listdir(os.path.join(TEST_DATA_PATH, "x", "img")))
         images, masks = read_images(os.path.join(TEST_DATA_PATH, "x", "img"))
-       
+        images = np.array(images)
+        print(np.max(images))
         print("SHAPE  - - - - - - - ", images.shape)
         prediction = model.predict(images)
         print(prediction.shape)
@@ -59,9 +61,17 @@ if __name__ == "__main__":
             MODELS[MODEL_NAME]["output_size"][1],
             NUM_CLASSES,
         )
+        # pred_mask = np.argmax(prediction, axis=3)
+        # precision, recall, f1_score, _ = precision_recall_fscore_support(masks, pred_mask, average='weighted')
+
+        # print("Precision: ", precision)
+        # print("Recall: ", recall)
+        # print("F1 Score: ", f1_score)
+
+
         for k, n in enumerate(prediction):
             f, axarr = plt.subplots(1, 3)
-            first_prediction = np.argmax(n, axis=2)
+            first_prediction = np.argmax(n, axis=-1)
             pred_rgb = np.zeros(
                 (
                     MODELS[MODEL_NAME]["output_size"][0],

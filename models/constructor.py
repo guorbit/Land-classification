@@ -424,6 +424,9 @@ class ModelGenerator(Model):
     loss_tracker = keras.metrics.Mean(name="loss")
     eval_acc_metric = keras.metrics.CategoricalAccuracy(name="val_accuracy")
     eval_loss_tracker = keras.metrics.Mean(name="val_loss")
+    eval_recall = keras.metrics.Recall(name="val_recall")
+    eval_precision = keras.metrics.Precision(name="val_precision")
+
     backup_logs = None
     # metrics = None
 
@@ -442,6 +445,10 @@ class ModelGenerator(Model):
             self.loss_tracker,
             self.eval_acc_metric,
             self.eval_loss_tracker,
+            self.eval_recall,
+            self.eval_precision,
+
+    
         ]
         super(ModelGenerator, self).compile(*args, **kwargs)
 
@@ -483,6 +490,10 @@ class ModelGenerator(Model):
 
         self.eval_loss_tracker.update_state(loss)
         self.eval_acc_metric.update_state(y, y_pred)
+        self.eval_recall.update_state(y, y_pred)
+        self.eval_precision.update_state(y, y_pred)
+
+
 
         return self.eval_loss_tracker.result(), self.eval_acc_metric.result()
 
@@ -505,6 +516,10 @@ class ModelGenerator(Model):
             self.acc_metric,
             self.eval_loss_tracker,
             self.eval_acc_metric,
+            self.eval_recall,
+            self.eval_precision,
+  
+       
         ]
         for callback in callbacks:
             callback.set_model(self)
@@ -546,7 +561,7 @@ class ModelGenerator(Model):
                     loss, accuracy = self.eval_step(data)
                     pbar.update(
                         dataset_idx + 1,
-                        values=[("val_loss", loss), ("val_accuracy", accuracy)],
+                        values=[("val_loss", loss), ("val_accuracy", accuracy),( "val_recall", self.eval_recall.result()),("val_precision", self.eval_precision.result())],
                     )
 
             for metric in metrics:
@@ -577,7 +592,7 @@ class VGG16_UNET:
     IMAGE_ORDERING = "channels_last"
     n_classes = None
 
-    def __init__(self, input_shape, output_shape, n_classes):
+    def __init__(self, input_shape, output_shape, n_classes, load_weights=False):
         """
         Initializes a VGG16 Unet Segmentation Class
 
@@ -593,7 +608,7 @@ class VGG16_UNET:
         self.n_classes = n_classes
         print("Initializing VGG16 Unet")
         self.create_model(
-            input_shape=input_shape, output_shape=output_shape, load_weights=True
+            input_shape=input_shape, output_shape=output_shape, load_weights=load_weights
         )
 
     def create_model(self, input_shape, output_shape, load_weights=False):
@@ -615,33 +630,72 @@ class VGG16_UNET:
         img_input = Input(shape=input_shape)
         
         x = tf.keras.applications.vgg16.preprocess_input(img_input)
-        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING)(x)
-        x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=self.IMAGE_ORDERING)(x)
-        x = AveragePooling2D((2, 2), strides=(2, 2), name='block1_avg_pool', data_format=self.IMAGE_ORDERING)(x)
-        x = Dropout(0.05)(x)
+        x = Conv2D(64, (3, 3), padding='same', name='block1_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(64, (3, 3), padding='same', name='block1_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
         f1 = x
-        # Block 2
-        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING)(x)
-        x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=self.IMAGE_ORDERING)(x)
-        x = AveragePooling2D((2, 2), strides=(2, 2), name='block2_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_avg_pool', data_format=self.IMAGE_ORDERING)(x)
         x = Dropout(0.05)(x)
+        
+        
+        # Block 2
+        x = Conv2D(128, (3, 3), padding='same', name='block2_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(128, (3, 3), padding='same', name='block2_conv2', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
         f2 = x
 
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+        x = Dropout(0.05)(x)
+        
+
         # Block 3
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=self.IMAGE_ORDERING)(x)
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
-        x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
-        x = AveragePooling2D((2, 2), strides=(2, 2), name='block3_avg_pool', data_format=self.IMAGE_ORDERING)(x)
-        x = Dropout(0.025)(x)
+        x = Conv2D(256, (3, 3), padding='same', name='block3_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(256, (3, 3), padding='same', name='block3_conv2', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(256, (3, 3), padding='same', name='block3_conv3', data_format=self.IMAGE_ORDERING, dilation_rate = 2)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
         f3 = x
+        
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+        x = Dropout(0.025)(x)
+        
 
         # Block 4
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1', data_format=self.IMAGE_ORDERING)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
-        x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
-        x = AveragePooling2D((2, 2), strides=(2, 2), name='block4_avg_pool', data_format=self.IMAGE_ORDERING)(x)
-        x = Dropout(0.0125)(x)
+        x = Conv2D(512, (3, 3), padding='same', name='block4_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(512, (3, 3), padding='same', name='block4_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(512, (3, 3), padding='same', name='block4_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
         f4 = x
+
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+        x = Dropout(0.0125)(x)
+        
+        x = Conv2D(512, (3, 3), padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(512, (3, 3), padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(512, (3, 3), padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        f5 = x
         
         vgg = ModelGenerator("vgg",inputs = img_input,outputs = x)
 
@@ -652,39 +706,66 @@ class VGG16_UNET:
         #vgg.learning_rate = 0.001
         self.levels = [f1, f2, f3, f4]
         
-        vgg.trainable = False
+        # vgg.trainable = False
 
-        for layer in vgg.layers[-4:None]:
-            print("Setting layer trainable: ", layer)
-            layer.trainable = True
+        # for layer in vgg.layers[-4:None]:
+        #     print("Setting layer trainable: ", layer)
+        #     layer.trainable = True
         
 
-        o = f4
+        o = f5
 
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
         o = (Conv2D(512, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
-        o = (Dropout(0.4))(o)
+        o = (Activation('relu'))(o)
+        o = (Conv2D(512, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(0.2))(o)
 
         o = (Conv2DTranspose(512,(2, 2), strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
-        o = (Concatenate(axis=MERGE_AXIS)([o, f3]))
+        o = (Concatenate(axis=MERGE_AXIS)([o, f4]))
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
         o = (Conv2D(256, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
-        o = (Dropout(0.3))(o)
+        o = (Activation('relu'))(o)
+        o = (Conv2D(256, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(0.15))(o)
 
         o = (Conv2DTranspose(256,(2, 2),strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
-        o = (Concatenate(axis=MERGE_AXIS)([o, f2]))
+        o = (Concatenate(axis=MERGE_AXIS)([o, f3]))
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
         o = (Conv2D(128, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
-        o = (Dropout(0.2))(o)
+        o = (Activation('relu'))(o)
+        o = (Conv2D(128, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(0.1))(o)
 
         o = (Conv2DTranspose (128,(2, 2),strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
-        o = (Concatenate(axis=MERGE_AXIS)([o, f1]))
+        o = (Concatenate(axis=MERGE_AXIS)([o, f2]))
         o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
         o = (Conv2D(64, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Conv2D(64, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(0.1))(o)
+
+        o = (Conv2DTranspose (64,(2, 2),strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate(axis=MERGE_AXIS)([o, f1]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(32, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Conv2D(32, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
         o = (Dropout(0.1))(o)
 
         o = Conv2D(self.n_classes, (3, 3), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
@@ -703,6 +784,21 @@ class VGG16_UNET:
         self.model = model
    
         # fmt: on
+
+    def conv_block(self,input, num_filters):
+        x = Conv2D(num_filters, 3, padding="same")(input)
+        x = BatchNormalization()(x)
+        x = Activation("relu")(x)
+        x = Conv2D(num_filters, 3, padding="same")(x)
+        x = BatchNormalization()(x)
+        x = Activation("relu")(x)
+        return x
+
+    def decoder_block(self,input, skip_features, num_filters):
+        x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
+        x = Concatenate()([x, skip_features])
+        x = self.conv_block(x, num_filters)
+        return x
 
     def get_model(self):
         return self.model

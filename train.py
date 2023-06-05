@@ -2,7 +2,7 @@ import sys
 from models.constructor import ModelGenerator, VGG16_UNET
 from constants import TRAINING_DATA_PATH, NUM_CLASSES, TEST_DATA_PATH
 from models.loss_constructor import Semantic_loss_functions
-from models.callbacks import accuracy_drop_callback, CustomReduceLROnPlateau
+from models.callbacks import accuracy_drop_callback, CustomReduceLROnPlateau,SavePredictedMaskCallback
 import tensorflow as tf
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
@@ -19,7 +19,7 @@ from keras import backend as K
 from keras.callbacks import TensorBoard
 import os
 from tensorflow import keras
-from utilities.segmentation_utils.flowreader import FlowGenerator, FlowGeneratorExperimental, FlowGeneratorExperimental2
+from utilities.segmentation_utils.flowreader import FlowGenerator, FlowGeneratorExperimental
 import utilities.segmentation_utils.ImagePreprocessor as ImagePreprocessor
 from utilities.segmentation_utils.ImagePreprocessor import PreprocessingQueue
 
@@ -71,23 +71,23 @@ if __name__ == "__main__":
         tf.config.run_functions_eagerly(True)
 
 
-    wrapper = VGG16_UNET((512, 512, 3), (256 * 256, 7), NUM_CLASSES)
+    wrapper = VGG16_UNET((512, 512, 3), (512 , 512, 7), NUM_CLASSES,load_weights=False)
     model = wrapper.get_model()
 
-    # model.create_model(load_weights=True)
-
+    # initialize loss function
     loss_object = Semantic_loss_functions(weights_enabled=True)
     loss_fn = loss_object.hybrid_loss
-    # loss_fn =
 
     model.compile(
-        optimizer=keras.optimizers.SGD(momentum=0.8),
+        optimizer=keras.optimizers.SGD(momentum=0.5),
         loss=loss_fn,
         metrics=["accuracy"],
     )
 
-    batch_size = 16
+    batch_size = 4
     seed = 42
+
+    # initialize image preprocessing queues
     image_queue = PreprocessingQueue(
         queue=[
             tf.image.random_flip_left_right,
@@ -117,22 +117,21 @@ if __name__ == "__main__":
         ],
     )
 
-    # print(model.output_shape())
+
     dataset_size = None
+
     training_args = {
         "batch_size": batch_size,
-        "epochs": 10,
-        # "steps_per_epoch": dataset_size // batch_size,
+        "epochs": 3,
         "steps_per_epoch": dataset_size,
-        # "validation_steps": 40,
-        # "validation_data": tuning_generator,
     }
 
+    # dataset iterator arguments
     reader_args = {
         "image_path": os.path.join(TRAINING_DATA_PATH, "x","img"),
         "mask_path": os.path.join(TRAINING_DATA_PATH, "y","img"),
         "image_size": (512, 512),  #
-        "output_size": (256 , 256),
+        "output_size": (512 , 512),
         "shuffle": True,
         "preprocessing_enabled": True ,
         "channel_mask": [True,True,True],
@@ -144,7 +143,7 @@ if __name__ == "__main__":
         "image_path": os.path.join(VALIDATION_DATA_PATH, "x","img"),
         "mask_path": os.path.join(VALIDATION_DATA_PATH, "y","img"),
         "image_size": (512, 512),  #
-        "output_size": (256 , 256),
+        "output_size": (512 , 512),
         "shuffle": True,
         "preprocessing_enabled": False,
         "channel_mask": [True,True,True],
@@ -152,40 +151,40 @@ if __name__ == "__main__":
         "batch_size": batch_size,
     }
 
+    # callbacks
     reduce_lr = CustomReduceLROnPlateau(
         monitor="val_loss", factor=0.1, patience=2, min_lr=1E-10
     )
-
-    generator = FlowGeneratorExperimental(**reader_args)
-    generator.set_preprocessing_pipeline(image_queue, mask_queue)
-
-    val_generator = FlowGeneratorExperimental(**val_reader_args)
-    
-    
-
-    # val_generator = FlowGenerator(**val_reader_args)
-    dataset_size = len(generator)
-    # val_generator = val_generator.get_generator()
-    training_args["steps_per_epoch"] = dataset_size 
-    
+    #save_mask = SavePredictedMaskCallback("logs\images")
     tb_callback = TensorBoard(
         log_dir=os.path.join("tb_log", MODEL_NAME + "_" + str(MODEL_ITERATION)),
         histogram_freq=1,
         write_graph=True,
         write_images=True,
     )
+
+    # initialize dataset iterators
+    generator = FlowGeneratorExperimental(**reader_args)
+    generator.set_preprocessing_pipeline(image_queue, mask_queue)
+    
+    val_generator = FlowGeneratorExperimental(**val_reader_args)
+
+    dataset_size = len(generator)
+    training_args["steps_per_epoch"] = dataset_size 
+    
+    # train model
     model.summary()
     model.train(
         generator,
         **training_args,
+        learning_rate=0.001,
         validation_dataset=val_generator,
         validation_steps=50,
         callbacks=[reduce_lr,tb_callback],
         enable_tensorboard=True,
     )
 
-    
-
+    # save model
     if not os.path.isdir(MODEL_FOLDER):
         os.mkdir(MODEL_FOLDER)
     model.save(

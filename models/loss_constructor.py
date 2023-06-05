@@ -23,8 +23,9 @@ class Semantic_loss_functions(object):
         for i in range(NUM_CLASSES):
             # tf-idf like calculation
             # self.weights[i] = math.log10(weights.iloc[i, 1]) * math.log10(n/weights.iloc[i, 2])
-            self.weights[i] = math.log10(weights.iloc[i, 1])
+            self.weights[i] = math.log2(weights.iloc[i, 1])
         self.weights = 1 - tf.nn.softmax(self.weights)
+        # self.weights = 1 - tf.nn.softmax(self.weights - np.mean(self.weights))
         join_str = ", "
         print(f"Class weights initialized as: {join_str.join([str(round(x,4)) for x in K.eval(self.weights)])}")
 
@@ -61,14 +62,15 @@ class Semantic_loss_functions(object):
         """
         SSIM loss to minimize. Pass to model as loss during compile statement
         """
+        tile_size = y_true.shape[1] // window_size[0]
         # calculate ssim for each channel seperately
-        y_true = tf.reshape(y_true, [-1, window_size[0], 64, window_size[1], 64, 7])
+        y_true = tf.reshape(y_true, [-1, window_size[0], tile_size, window_size[1], tile_size, 7])
         y_true = tf.transpose(y_true, perm=[0, 1, 3, 2, 4, 5])
-        y_true = tf.reshape(y_true, [-1, window_size[0] * window_size[1], 64, 64, 7])
+        y_true = tf.reshape(y_true, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7])
 
-        y_pred = tf.reshape(y_pred, [-1, window_size[0], 64, window_size[1], 64, 7])
+        y_pred = tf.reshape(y_pred, [-1, window_size[0], tile_size, window_size[1], tile_size, 7])
         y_pred = tf.transpose(y_pred, perm=[0, 1, 3, 2, 4, 5])
-        y_pred = tf.reshape(y_pred, [-1, window_size[0] * window_size[1], 64, 64, 7])
+        y_pred = tf.reshape(y_pred, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7])
 
         # sliding window ssim on separate channels
         categorical_ssim = tf.convert_to_tensor(
@@ -92,12 +94,12 @@ class Semantic_loss_functions(object):
         categorical_ssim = 1 - categorical_ssim
 
         # calculate mean ssim for each channel
-        tmp = tf.math.reduce_mean(categorical_ssim, axis=0)
+        categorical_ssim = tf.math.reduce_mean(categorical_ssim, axis=0)
 
         # calculate max ssim for each channel
-        categorical_ssim = tf.math.reduce_max(categorical_ssim, axis=0)
+        # categorical_ssim = tf.math.reduce_max(categorical_ssim, axis=0)
 
-        categorical_ssim = categorical_ssim + tmp
+        # categorical_ssim = categorical_ssim + tmp
         # swap axes 0,1
         categorical_ssim = tf.transpose(categorical_ssim, perm=[1, 0])
         return categorical_ssim
@@ -128,7 +130,7 @@ class Semantic_loss_functions(object):
                     )
                     for i in range(7)
                 ]
-                for j in range(16)
+                for j in range(window_size[0] * window_size[1])
             ]
         )
         # tf.print(categorical_ssim)
@@ -149,6 +151,8 @@ class Semantic_loss_functions(object):
 
         # swap axes 0,1
         categorical_ssim = tf.transpose(categorical_ssim, perm=[1, 0])
+
+        categorical_ssim = tf.where(tf.math.is_nan(categorical_ssim), 1.0, categorical_ssim)
 
         return categorical_ssim
 

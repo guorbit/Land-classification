@@ -1,8 +1,20 @@
+import os
 import tensorflow as tf
 import keras
 from keras import backend as K
 import time
 import tensorflow as tf
+import numpy as np
+from matplotlib import pyplot as plt
+from constants import (
+    MODEL_NAME,
+    MODELS,
+    NUM_CLASSES,
+    TEST_DATA_PATH,
+    MODEL_ITERATION,
+    LABEL_MAP,
+    MODEL_FOLDER,
+)
 
 class accuracy_drop_callback(keras.callbacks.Callback):
     previous_loss = None
@@ -58,5 +70,27 @@ class CustomReduceLROnPlateau(keras.callbacks.ReduceLROnPlateau):
             self.model.optimizer.set_weights(optimizer_weights)
 
 
+class SavePredictedMaskCallback(keras.callbacks.Callback):
+    def __init__(self,dir,step = 1, *args, **kwargs):
+        super(SavePredictedMaskCallback,self).__init__(*args, **kwargs)
+        self.dir = dir
+        self.step = step
+    def on_epoch_end(self, epoch, logs={}):
+        if epoch % self.step == 0:
 
-
+            prediction = self.model.predict(self.model.validation_data[0])
+            prediction = np.argmax(prediction, axis=-1)
+            pred_rgb = np.zeros(
+                (
+                    MODELS[MODEL_NAME]["output_size"][0],
+                    MODELS[MODEL_NAME]["output_size"][1],
+                    3,
+                )
+            )
+            for i in range(0, prediction.shape[0]):
+                for j in range(0, prediction.shape[1]):
+                    pred_rgb[i, j, :] = LABEL_MAP[prediction[i, j]]
+            
+            plt.imshow(pred_rgb / 255)
+            plt.axis("off")
+            plt.savefig(os.path.join(self.dir,epoch+"_test.png"), bbox_inches="tight")
