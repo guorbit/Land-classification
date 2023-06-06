@@ -1,12 +1,14 @@
-import os
-import math
+
 import tensorflow as tf
-import numpy as np
+
+import itertools
 from tensorflow import keras
 from keras.layers import (
+    Layer,
     Conv2D,
     BatchNormalization,
     Activation,
+    AveragePooling2D,
     MaxPooling2D,
     Conv2DTranspose,
     Concatenate,
@@ -16,11 +18,11 @@ from keras.layers import (
     Concatenate,
     ReLU,
     ZeroPadding2D,
+    UpSampling2D,
 )
 import tensorflow_addons as tfa
-from keras.applications import VGG16
+
 from keras.models import Model
-import itertools
 from utilities.segmentation_utils.flowreader import FlowGenerator
 from constants import NUM_CLASSES, TRAINING_DATA_PATH, TEST_DATA_PATH
 
@@ -288,8 +290,6 @@ class ModelGenerator(Model):
             self.eval_loss_tracker,
             self.eval_recall,
             self.eval_precision,
-
-    
         ]
         super(ModelGenerator, self).compile(*args, **kwargs)
 
@@ -334,8 +334,6 @@ class ModelGenerator(Model):
         self.eval_recall.update_state(y, y_pred)
         self.eval_precision.update_state(y, y_pred)
 
-
-
         return self.eval_loss_tracker.result(), self.eval_acc_metric.result()
 
     def train(
@@ -343,7 +341,7 @@ class ModelGenerator(Model):
         dataset,
         epochs=1,
         batch_size=32,
-        learning_rate=1E-2,
+        learning_rate=1e-2,
         steps_per_epoch=512,
         validation_dataset=None,
         validation_steps=50,
@@ -360,8 +358,6 @@ class ModelGenerator(Model):
             self.eval_acc_metric,
             self.eval_recall,
             self.eval_precision,
-  
-       
         ]
         for callback in callbacks:
             callback.set_model(self)
@@ -384,7 +380,7 @@ class ModelGenerator(Model):
                 itertools.islice(dataset, steps_per_epoch)
             ):
                 # for batch_idx, mini_batch in enumerate(data):
-     
+
                 loss, accuracy = self.train_step(data)
                 pbar.update(
                     dataset_idx + 1, values=[("loss", loss), ("accuracy", accuracy)]
@@ -403,13 +399,18 @@ class ModelGenerator(Model):
                     loss, accuracy = self.eval_step(data)
                     pbar.update(
                         dataset_idx + 1,
-                        values=[("val_loss", loss), ("val_accuracy", accuracy),( "val_recall", self.eval_recall.result()),("val_precision", self.eval_precision.result())],
+                        values=[
+                            ("val_loss", loss),
+                            ("val_accuracy", accuracy),
+                            ("val_recall", self.eval_recall.result()),
+                            ("val_precision", self.eval_precision.result()),
+                        ],
                     )
 
             for metric in metrics:
                 if hasattr(metric, "result"):
                     logs[metric.name] = metric.result().numpy()
-                    
+
                     metric.reset_states()
                 else:
                     logs[metric.name] = metric.numpy()
@@ -450,7 +451,9 @@ class VGG16_UNET:
         self.n_classes = n_classes
         print("Initializing VGG16 Unet")
         self.create_model(
-            input_shape=input_shape, output_shape=output_shape, load_weights=load_weights
+            input_shape=input_shape,
+            output_shape=output_shape,
+            load_weights=load_weights,
         )
 
     def create_model(self, input_shape, output_shape, load_weights=False):
@@ -529,24 +532,19 @@ class VGG16_UNET:
         x = Dropout(0.0125)(x)
         
         # Block 5 pyramid pooling block
-        p1 = Conv2D(512, (1, 1), padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING)(x)
-        p1 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p1)
-        p1 = ReLU()(p1)
 
-        p2 = Conv2D(512, (3, 3), padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=6)(x)
-        p2 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p2)
-        p2 = ReLU()(p2)
+        x = Conv2D(512, (3, 3), padding='same', name='block5_conv1', data_format=self.IMAGE_ORDERING)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(512, (3, 3), padding='same', name='block5_conv2', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = Conv2D(512, (3, 3), padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=4)(x)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        f5 = x
 
-        p3 = Conv2D(512, (3, 3), padding='same', name='block5_conv3', data_format=self.IMAGE_ORDERING, dilation_rate=12)(x)
-        p3 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p3)
-        p3 = ReLU()(p3)
 
-        p4 = Conv2D(512, (3, 3), padding='same', name='block5_conv4', data_format=self.IMAGE_ORDERING, dilation_rate=18)(x)
-        p4 = tfa.layers.GroupNormalization(groups=32, axis=-1)(p4)
-        p4 = ReLU()(p4)
-
-        f5 = Concatenate(axis=MERGE_AXIS)([p1, p2, p3, p4,x])
-        x = f5
         vgg = ModelGenerator("vgg",inputs = img_input,outputs = x)
 
         if load_weights:   
@@ -562,6 +560,7 @@ class VGG16_UNET:
         #     print("Setting layer trainable: ", layer)
         #     layer.trainable = True
         
+        f5 = PyramidPoolingModule()(f5)
 
         o = f5
 
@@ -632,13 +631,37 @@ class VGG16_UNET:
         model.outputHeight = o_shape[1]
         #model.learning_rate = 0.001
         self.model = model
-   
-        # fmt: on
 
-    
+        # fmt: on
 
     def get_model(self):
         return self.model
 
     def get_base_model(self):
         return self.base_model
+
+
+class PyramidPoolingModule(Layer):
+    def __init__(self, pool_sizes=[1, 2, 3, 6], **kwargs):
+        super(PyramidPoolingModule, self).__init__(**kwargs)
+        self.pool_sizes = pool_sizes
+
+    def build(self, input_shape):
+        self.output_dim = input_shape[-1]
+        # Add convolutional layers
+        self.conv_kernels = [(1,1), (3,3), (3,3), (3,3)]
+        
+
+    def call(self, inputs):
+        input_shape = inputs.shape
+        output_list = [inputs]
+        for i, pool_size in enumerate(self.pool_sizes):
+            x = AveragePooling2D(pool_size, strides=1, padding='same')(inputs)
+            x = Conv2D(self.output_dim, self.conv_kernels[i], padding='same', activation='relu')
+            x = UpSampling2D(size=pool_size, interpolation='bilinear')(x)
+            output_list.append(x)
+        outputs = Concatenate(axis=-1)(output_list)
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], input_shape[1], input_shape[2], self.output_dim)
