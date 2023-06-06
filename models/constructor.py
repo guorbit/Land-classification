@@ -642,12 +642,13 @@ class VGG16_UNET:
 
 
 class PyramidPoolingModule(Layer):
-    def __init__(self, pool_sizes=[1, 2, 3, 6], **kwargs):
+    def __init__(self, pool_sizes=[1, 2, 3, 6],image_ordering = "channels_last", **kwargs):
         super(PyramidPoolingModule, self).__init__(**kwargs)
         self.pool_sizes = pool_sizes
+        self.image_ordering = image_ordering
 
     def build(self, input_shape):
-        self.output_dim = input_shape[-1]
+        self.output_dim = input_shape[-2]
         # Add convolutional layers
         self.conv_kernels = [(1,1), (3,3), (3,3), (3,3)]
         
@@ -657,7 +658,7 @@ class PyramidPoolingModule(Layer):
         output_list = [inputs]
         for i, pool_size in enumerate(self.pool_sizes):
             x = AveragePooling2D(pool_size, strides=1, padding='same')(inputs)
-            x = Conv2D(self.output_dim, self.conv_kernels[i], padding='same', activation='relu')
+            x = Conv2D(self.output_dim, self.conv_kernels[i], padding='same', activation='relu', data_format=self.image_ordering)(x)
             x = UpSampling2D(size=pool_size, interpolation='bilinear')(x)
             output_list.append(x)
         outputs = Concatenate(axis=-1)(output_list)
