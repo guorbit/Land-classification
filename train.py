@@ -73,6 +73,9 @@ if __name__ == "__main__":
         "k1": 0.06,
         "k2": 0.02,
         "weights_enabled": True,
+        # NOTE: arguments for constructing the models forward pass
+        "load_weights": False,
+        "dropouts": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         # NOTE: arguments for compiling the model
         "optimizer": keras.optimizers.Adam(learning_rate=0.001),
         "loss": loss_object.categorical_focal_loss,
@@ -106,6 +109,7 @@ if __name__ == "__main__":
         (DEFAULT_DATA["output_size"][0], DEFAULT_DATA["output_size"][0], NUM_CLASSES),
         NUM_CLASSES,
         load_weights=False,
+        dropouts=HPARAMS["dropouts"],
     )
     model = wrapper.get_model()
 
