@@ -9,12 +9,53 @@ import keras.backend as K
 import keras
 
 
-class Semantic_loss_functions(object):
-    def __init__(self, weights_enabled=True):
+class SemanticLoss(object):
+    def __init__(
+        self,
+        weights_enabled=True,
+        gamma=1.4,
+        alpha=0.25,
+        window_size=(4, 4),
+        filter_size=25,
+        filter_sigma=2.5,
+        k1=0.06,
+        k2=0.02,
+    ):
+        self.gamma = gamma
+        self.alpha = alpha
+        self.window_size = window_size
+        self.filter_size = filter_size
+        self.filter_sigma = filter_sigma
+        self.k1 = k1
+        self.k2 = k2
         self.weights = np.ones((NUM_CLASSES,), dtype=np.float32)
         if weights_enabled:
             self.load_weights()
         print(f"Semantic loss function initialized with {NUM_CLASSES} classes.")
+
+    def set_alpha(self, alpha):
+        self.alpha = alpha
+
+    def set_gamma(self, gamma):
+        self.gamma = gamma
+
+    def set_weights(self, weights):
+        self.weights = weights
+
+    def set_window_size(self, window_size):
+        self.window_size = window_size
+
+    def set_filter_size(self, filter_size):
+        self.filter_size = filter_size
+
+    def set_filter_sigma(self, filter_sigma):
+        self.filter_sigma = filter_sigma
+
+    def set_k1(self, k1):
+        self.k1 = k1
+
+    def set_k2(self, k2):
+        self.k2 = k2
 
     def load_weights(self):
         weights = pd.read_csv(
@@ -34,8 +75,8 @@ class Semantic_loss_functions(object):
 
     @tf.function
     def categorical_focal_loss(self, y_true, y_pred):
-        gamma = 1.4
-        alpha = 0.25
+        gamma = self.gamma
+        alpha = self.alpha
         y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
         epsilon = K.epsilon()
         y_pred = K.clip(y_pred, epsilon, 1.0 - epsilon)
@@ -90,10 +131,10 @@ class Semantic_loss_functions(object):
                         tf.expand_dims(y_true[:, j, :, :, i], -1),
                         tf.expand_dims(y_pred[:, j, :, :, i], -1),
                         max_val=1,
-                        filter_size=25,
-                        filter_sigma=2.5,
-                        k1=0.06,
-                        k2=0.02,
+                        filter_size=self.filter_size,
+                        filter_sigma=self.filter_sigma,
+                        k1=self.k1,
+                        k2=self.k2,
                     )
                     for i in range(7)
                 ]
@@ -120,13 +161,23 @@ class Semantic_loss_functions(object):
         SSIM loss to minimize. Pass to model as loss during compile statement
         """
         # calculate ssim for each channel seperately
-        y_true = tf.reshape(y_true, [-1, window_size[0], 64, window_size[1], 64, 7])
-        y_true = tf.transpose(y_true, perm=[0, 1, 3, 2, 4, 5])
-        y_true = tf.reshape(y_true, [-1, window_size[0] * window_size[1], 64, 64, 7])
+        tile_size = y_true.shape[1] // window_size[0]
 
-        y_pred = tf.reshape(y_pred, [-1, window_size[0], 64, window_size[1], 64, 7])
+        y_true = tf.reshape(
+            y_true, [-1, window_size[0], tile_size, window_size[1], tile_size, 7]
+        )
+        y_true = tf.transpose(y_true, perm=[0, 1, 3, 2, 4, 5])
+        y_true = tf.reshape(
+            y_true, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7]
+        )
+
+        y_pred = tf.reshape(
+            y_pred, [-1, window_size[0], tile_size, window_size[1], tile_size, 7]
+        )
         y_pred = tf.transpose(y_pred, perm=[0, 1, 3, 2, 4, 5])
-        y_pred = tf.reshape(y_pred, [-1, window_size[0] * window_size[1], 64, 64, 7])
+        y_pred = tf.reshape(
+            y_pred, [-1, window_size[0] * window_size[1], tile_size, tile_size, 7]
+        )
 
         # sliding window ssim on separate channels
         categorical_ssim = tf.convert_to_tensor(
@@ -177,20 +228,20 @@ class Semantic_loss_functions(object):
         mask_pred = tf.math.logical_not(tf.math.logical_and(y_pred >= 0, y_pred <= 7))
         y_true = tf.where(mask_true, tf.zeros_like(y_true), y_true)
         y_pred = tf.where(mask_pred, tf.zeros_like(y_pred), y_pred)
-        ssim = tf.image.ssim( # try ssim_multiscale
+        ssim = tf.image.ssim(  # try ssim_multiscale
             y_true,
             y_pred,
             max_val=7,
-            filter_size=2, # try 3
+            filter_size=self.filter_size,  # try 3
         )
 
         ssim_loss = 1 - tf.reduce_mean(ssim)
         ssim_loss = tf.where(tf.math.is_nan(ssim_loss), 1.0, ssim_loss)
-        
+
         return ssim_loss
 
     @tf.function
-    def hybrid_loss(self, y_true, y_pred,weights = None):
+    def hybrid_loss(self, y_true, y_pred, weights=None):
         """
         Hybrid loss to minimize. Pass to model as loss during compile statement.
         It is a combination of jackard loss, focal loss and ssim loss.
@@ -205,6 +256,4 @@ class Semantic_loss_functions(object):
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))
-        return jf * self.weights 
-    
-    
+        return jf * self.weights

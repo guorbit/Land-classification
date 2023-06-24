@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 
 import itertools
@@ -25,7 +24,6 @@ import tensorflow_addons as tfa
 from keras.models import Model
 from utilities.segmentation_utils.flowreader import FlowGenerator
 from constants import NUM_CLASSES, TRAINING_DATA_PATH, TEST_DATA_PATH
-
 
 
 @DeprecationWarning
@@ -312,7 +310,7 @@ class ModelGenerator(Model):
             if w is None:
                 loss = self.compiled_loss(y, y_pred)
             else:
-                loss = self.compiled_loss(y, y_pred,w)
+                loss = self.compiled_loss(y, y_pred, w)
             # loss = tf.reduce_mean(loss)
 
         # Compute gradients
@@ -440,8 +438,6 @@ class VGG16_UNET:
     VGG_Weights_path = tf.keras.utils.get_file(
         pretrained_url.split("/")[-1], pretrained_url
     )
-    IMAGE_ORDERING = "channels_last"
-    n_classes = None
 
     def __init__(self, input_shape, output_shape, n_classes, load_weights=False):
         """
@@ -457,6 +453,8 @@ class VGG16_UNET:
         None
         """
         self.n_classes = n_classes
+        self.IMAGE_ORDERING = "channels_last"
+
         print("Initializing VGG16 Unet")
         self.create_model(
             input_shape=input_shape,
@@ -464,7 +462,13 @@ class VGG16_UNET:
             load_weights=load_weights,
         )
 
-    def create_model(self, input_shape, output_shape, load_weights=False):
+    def create_model(
+        self,
+        input_shape,
+        output_shape,
+        load_weights=False,
+        dropouts=[0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ):
         """
         Initializes a VGG16 Unet Segmentation model forward pass definition
 
@@ -492,7 +496,7 @@ class VGG16_UNET:
         f1 = x
 
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_avg_pool', data_format=self.IMAGE_ORDERING)(x)
-        x = Dropout(0.05)(x)
+        x = Dropout(dropouts[0])(x)
         
         
         # Block 2
@@ -505,7 +509,7 @@ class VGG16_UNET:
         f2 = x
 
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_avg_pool', data_format=self.IMAGE_ORDERING)(x)
-        x = Dropout(0.05)(x)
+        x = Dropout(dropouts[1])(x)
         
 
         # Block 3
@@ -521,7 +525,7 @@ class VGG16_UNET:
         f3 = x
         
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_avg_pool', data_format=self.IMAGE_ORDERING)(x)
-        x = Dropout(0.025)(x)
+        x = Dropout(dropouts[2])(x)
         
 
         # Block 4
@@ -537,7 +541,7 @@ class VGG16_UNET:
         f4 = x
 
         x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_avg_pool', data_format=self.IMAGE_ORDERING)(x)
-        x = Dropout(0.0125)(x)
+        x = Dropout(dropouts[3])(x)
         
         # Block 5 pyramid pooling block
 
@@ -579,7 +583,7 @@ class VGG16_UNET:
         o = (Conv2D(512, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
         o = (Activation('relu'))(o)
-        o = (Dropout(0.2))(o)
+        o = (Dropout(dropouts[4]))(o)
 
         o = (Conv2DTranspose(512,(2, 2), strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
         o = (Concatenate(axis=MERGE_AXIS)([o, f4]))
@@ -590,7 +594,7 @@ class VGG16_UNET:
         o = (Conv2D(256, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
         o = (Activation('relu'))(o)
-        o = (Dropout(0.15))(o)
+        o = (Dropout(dropouts[5]))(o)
 
         o = (Conv2DTranspose(256,(2, 2),strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
         o = (Concatenate(axis=MERGE_AXIS)([o, f3]))
@@ -601,7 +605,7 @@ class VGG16_UNET:
         o = (Conv2D(128, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
         o = (Activation('relu'))(o)
-        o = (Dropout(0.1))(o)
+        o = (Dropout(dropouts[6]))(o)
 
         o = (Conv2DTranspose (128,(2, 2),strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
         o = (Concatenate(axis=MERGE_AXIS)([o, f2]))
@@ -612,7 +616,7 @@ class VGG16_UNET:
         o = (Conv2D(64, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
         o = (Activation('relu'))(o)
-        o = (Dropout(0.1))(o)
+        o = (Dropout(dropouts[7]))(o)
 
         o = (Conv2DTranspose (64,(2, 2),strides = (2,2), data_format=self.IMAGE_ORDERING))(o)
         o = (Concatenate(axis=MERGE_AXIS)([o, f1]))
@@ -623,7 +627,7 @@ class VGG16_UNET:
         o = (Conv2D(32, (3, 3), padding='same', data_format=self.IMAGE_ORDERING))(o)
         o = (BatchNormalization())(o)
         o = (Activation('relu'))(o)
-        o = (Dropout(0.1))(o)
+        o = (Dropout(dropouts[8]))(o)
 
         o = Conv2D(self.n_classes, (1, 1), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
         o_shape = Model(img_input, o).output_shape  
@@ -650,7 +654,9 @@ class VGG16_UNET:
 
 
 class PyramidPoolingModule(Layer):
-    def __init__(self, pool_sizes,kernels, num_channels, data_format='channels_last', **kwargs):
+    def __init__(
+        self, pool_sizes, kernels, num_channels, data_format="channels_last", **kwargs
+    ):
         super(PyramidPoolingModule, self).__init__(**kwargs)
         self.pool_sizes = pool_sizes
         self.kernels = kernels
@@ -659,31 +665,60 @@ class PyramidPoolingModule(Layer):
 
     def build(self, input_shape):
         self.conv_layers = []
-        
-        for pool_size,kernel in zip(self.pool_sizes,self.kernels):
-            self.conv_layers.append(Conv2D(input_shape[-1], kernel, padding='same', data_format=self.data_format,dilation_rate=pool_size))
+        for pool_size, kernel in zip(self.pool_sizes, self.kernels):
+            self.conv_layers.append(
+                Conv2D(
+                    input_shape[-1],
+                    kernel,
+                    padding="same",
+                    data_format=self.data_format,
+                    dilation_rate=pool_size,
+                )
+            )
 
     def call(self, x):
         input_shape = tf.shape(x)
         h, w = input_shape[1], input_shape[2]
         pyramid_features = [x]
         for pool_size, conv_layer in zip(self.pool_sizes, self.conv_layers):
-            x = tf.keras.layers.AveragePooling2D(pool_size=(pool_size, pool_size), strides=(pool_size, pool_size), padding='same', data_format=self.data_format)(x)
+            x = tf.keras.layers.AveragePooling2D(
+                pool_size=(pool_size, pool_size),
+                strides=(pool_size, pool_size),
+                padding="same",
+                data_format=self.data_format,
+            )(x)
             x = conv_layer(x)
-            x = UpSampling2D(size=(pool_size, pool_size), data_format=self.data_format)(x)
-            
+            x = UpSampling2D(size=(pool_size, pool_size), data_format=self.data_format)(
+                x
+            )
+
             pyramid_features.append(x)
         output = Concatenate(axis=-1)(pyramid_features)
         return output
-    
+
     def get_config(self):
         config = super(PyramidPoolingModule, self).get_config()
-        config.update({"pool_sizes": self.pool_sizes, "kernels": self.kernels, "num_channels": self.num_channels, "data_format": self.data_format})
+        config.update(
+            {
+                "pool_sizes": self.pool_sizes,
+                "kernels": self.kernels,
+                "num_channels": self.num_channels,
+                "data_format": self.data_format,
+            }
+        )
         return config
-    
+
 
 class ConvolutionalBlock(Layer):
-    def __init__(self, num_filters, kernel_size,n_conv:int, dilation_rate=1, data_format='channels_last', **kwargs):
+    def __init__(
+        self,
+        num_filters,
+        kernel_size,
+        n_conv: int,
+        dilation_rate=1,
+        data_format="channels_last",
+        **kwargs,
+    ):
         super(ConvolutionalBlock, self).__init__(**kwargs)
         self.num_filters = num_filters
         self.kernel_size = kernel_size
@@ -692,7 +727,13 @@ class ConvolutionalBlock(Layer):
         self.n_conv = n_conv
 
     def build(self, input_shape):
-        self.conv_layer = Conv2D(self.num_filters, self.kernel_size, padding='same', data_format=self.data_format, dilation_rate=self.dilation_rate)
+        self.conv_layer = Conv2D(
+            self.num_filters,
+            self.kernel_size,
+            padding="same",
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+        )
         self.batch_norm_layer = BatchNormalization()
         self.activation_layer = ReLU()
 
@@ -702,21 +743,35 @@ class ConvolutionalBlock(Layer):
             x = self.batch_norm_layer(x)
             x = self.activation_layer(x)
         return x
-    
+
     def get_config(self):
         config = super(ConvolutionalBlock, self).get_config()
-        config.update({"num_filters": self.num_filters, "kernel_size": self.kernel_size, "dilation_rate": self.dilation_rate, "data_format": self.data_format})
+        config.update(
+            {
+                "num_filters": self.num_filters,
+                "kernel_size": self.kernel_size,
+                "dilation_rate": self.dilation_rate,
+                "data_format": self.data_format,
+            }
+        )
         return config
-    
+
+
 class UnetDecoderBlock(Layer):
-    def __init__(self, num_filters, kernel_size, data_format='channels_last', **kwargs):
+    def __init__(self, num_filters, kernel_size, data_format="channels_last", **kwargs):
         super(UnetDecoderBlock, self).__init__(**kwargs)
         self.num_filters = num_filters
         self.kernel_size = kernel_size
         self.data_format = data_format
 
     def build(self, input_shape):
-        self.conv_layer = Conv2DTranspose(self.num_filters, self.kernel_size, strides=(2,2), padding='same', data_format=self.data_format)
+        self.conv_layer = Conv2DTranspose(
+            self.num_filters,
+            self.kernel_size,
+            strides=(2, 2),
+            padding="same",
+            data_format=self.data_format,
+        )
         self.batch_norm_layer = BatchNormalization()
         self.activation_layer = ReLU()
 
@@ -725,8 +780,14 @@ class UnetDecoderBlock(Layer):
         x = self.batch_norm_layer(x)
         x = self.activation_layer(x)
         return x
-    
+
     def get_config(self):
         config = super(UnetDecoderBlock, self).get_config()
-        config.update({"num_filters": self.num_filters, "kernel_size": self.kernel_size, "data_format": self.data_format})
+        config.update(
+            {
+                "num_filters": self.num_filters,
+                "kernel_size": self.kernel_size,
+                "data_format": self.data_format,
+            }
+        )
         return config

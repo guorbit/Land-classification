@@ -1,8 +1,5 @@
 from shape import read_images, IMAGE_SIZE
 from keras.models import load_model
-from keras import backend as K
-from keras.utils import plot_model
-from sklearn.metrics import precision_recall_fscore_support
 from matplotlib import pyplot as plt
 from constants import (
     MODEL_NAME,
@@ -16,12 +13,7 @@ from constants import (
 import numpy as np
 import os
 import tensorflow as tf
-from models.loss_constructor import Semantic_loss_functions
-from train import dice_coef_9cat_loss
-from train import (
-    masked_categorical_crossentropy,
-
-)
+from models.loss_constructor import SemanticLoss
 from models.constructor import ModelGenerator,PyramidPoolingModule
 from PIL import Image
 
@@ -33,8 +25,6 @@ if __name__ == "__main__":
         model = load_model(
             os.path.join(MODEL_FOLDER, MODEL_NAME + "_" + str(MODEL_ITERATION) + ".h5"),
             custom_objects={
-                "dice_coef_9cat_loss": dice_coef_9cat_loss,
-                "masked_categorical_crossentropy": masked_categorical_crossentropy,
                 "categorical_focal_loss": loss.categorical_focal_loss,
                 "categorical_jackard_loss": loss.categorical_jackard_loss,
                 "hybrid_loss": loss.hybrid_loss,

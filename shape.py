@@ -16,7 +16,6 @@ from constants import (
     VALIDATION_DATA_PATH,
     TEST_DATA_PATH,
 )
-from shape_encoder import ImagePreprocessor
 import tensorflow as tf
 from utilities.transform_utils.image_cutting import cut_ims_in_directory
 from utilities.transform_utils.image_stats import get_distribution_seg
