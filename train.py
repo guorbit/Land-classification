@@ -61,7 +61,6 @@ def masked_categorical_crossentropy(y_true, y_pred):
 if __name__ == "__main__":
     # read command line flag for debug mode
     debug = False
-
     sysargs = sys.argv
     if len(sysargs) > 1:
         if sysargs[1] == "--debug":
@@ -76,7 +75,7 @@ if __name__ == "__main__":
 
     # initialize loss function
     loss_object = Semantic_loss_functions(weights_enabled=True)
-    loss_fn = loss_object.hybrid_loss
+    loss_fn = loss_object.categorical_focal_loss
 
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.001),
@@ -100,9 +99,9 @@ if __name__ == "__main__":
         arguments=[
             {"seed": seed},
             {"seed": seed},
-            {"max_delta": 0.1, "seed": seed},
-            {"lower": 0.9, "upper": 1.1, "seed": seed},
-            {"lower": 0.9, "upper": 1.1, "seed": seed},
+            {"max_delta": 0.2, "seed": seed},
+            {"lower": 0.8, "upper": 1.2, "seed": seed},
+            {"lower": 0.8, "upper": 1.2, "seed": seed},
             # {"max_delta": 0.2, "seed": seed},
         ],
     )
@@ -120,11 +119,7 @@ if __name__ == "__main__":
 
     dataset_size = None
 
-    training_args = {
-        "batch_size": batch_size,
-        "epochs": 3,
-        "steps_per_epoch": dataset_size,
-    }
+
 
     # dataset iterator arguments
     reader_args = {
@@ -137,6 +132,8 @@ if __name__ == "__main__":
         "channel_mask": [True,True,True],
         "num_classes": NUM_CLASSES,
         "batch_size": batch_size,
+        "read_weights": False,
+        "weights_path": os.path.join(TRAINING_DATA_PATH, "weights.csv"),
     }
 
     val_reader_args = {
@@ -170,17 +167,22 @@ if __name__ == "__main__":
     val_generator = FlowGeneratorExperimental(**val_reader_args)
 
     dataset_size = len(generator)
-    training_args["steps_per_epoch"] = dataset_size 
+    training_args = {
+        "dataset": generator,
+        "batch_size": batch_size,
+        "epochs": 5,
+        "steps_per_epoch": dataset_size,
+        "learning_rate": 1E-5,
+        "validation_dataset": val_generator,
+        "validation_steps": 50,
+        "callbacks": [reduce_lr,tb_callback],
+    }
+
     
     # train model
     model.summary()
     model.train(
-        generator,
         **training_args,
-        learning_rate=0.001,
-        validation_dataset=val_generator,
-        validation_steps=50,
-        callbacks=[reduce_lr,tb_callback],
         enable_tensorboard=True,
     )
 
