@@ -6,6 +6,7 @@ import numpy as np
 from constants import NUM_CLASSES, TRAINING_DATA_PATH
 import tensorflow as tf
 import keras.backend as K
+import keras
 
 
 class Semantic_loss_functions(object):
@@ -33,7 +34,7 @@ class Semantic_loss_functions(object):
 
     @tf.function
     def categorical_focal_loss(self, y_true, y_pred):
-        gamma = 1.5
+        gamma = 1.4
         alpha = 0.25
         y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
         epsilon = K.epsilon()
@@ -103,7 +104,7 @@ class Semantic_loss_functions(object):
         categorical_ssim = 1 - categorical_ssim
 
         # calculate mean ssim for each channel
-        categorical_ssim = tf.math.reduce_mean(categorical_ssim, axis=0)
+        categorical_ssim = tf.math.reduce_sum(categorical_ssim, axis=0)
 
         # calculate max ssim for each channel
         # categorical_ssim = tf.math.reduce_max(categorical_ssim, axis=0)
@@ -184,22 +185,26 @@ class Semantic_loss_functions(object):
         )
 
         ssim_loss = 1 - tf.reduce_mean(ssim)
-        ssim_loss = tf.where(tf.math.is_nan(ssim_loss), 0.0, ssim_loss)
+        ssim_loss = tf.where(tf.math.is_nan(ssim_loss), 1.0, ssim_loss)
         
         return ssim_loss
 
     @tf.function
-    def hybrid_loss(self, y_true, y_pred):
+    def hybrid_loss(self, y_true, y_pred,weights = None):
         """
         Hybrid loss to minimize. Pass to model as loss during compile statement.
         It is a combination of jackard loss, focal loss and ssim loss.
         """
+        if weights is None:
+            weights = [1 for i in range(NUM_CLASSES)]
         jackard_loss = self.categorical_jackard_loss(y_true, y_pred)
         focal_loss = self.categorical_focal_loss(y_true, y_pred)
-        ssim_loss = self.ssim_loss_combined(y_true, y_pred)
+        # ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
 
         jf = focal_loss + jackard_loss
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))
-        return jf * self.weights + ssim_loss
+        return jf * self.weights 
+    
+    
