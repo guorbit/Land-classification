@@ -53,7 +53,7 @@ tb_callback = TensorBoard(
 
 
 def init_loss() -> SemanticLoss:
-    loss_object = SemanticLoss(weights_enabled=True)
+    loss_object = SemanticLoss(weights_enabled=True, num_classes=NUM_CLASSES,weights_path=TRAINING_DATA_PATH)
     loss_object.set_alpha(HPARAMS["alpha"])
     loss_object.set_gamma(HPARAMS["gamma"])
     loss_object.set_window_size(HPARAMS["window_size"])
