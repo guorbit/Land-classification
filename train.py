@@ -155,3 +155,5 @@ if __name__ == "__main__":
 
     if debug:
         tf.config.run_functions_eagerly(True)
+
+    main()
