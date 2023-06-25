@@ -14,6 +14,7 @@ from constants import (
     NUM_CLASSES,
     MODEL_ITERATION,
     MODEL_FOLDER,
+    HPARAMS,
 )
 from keras import backend as K
 from keras.callbacks import TensorBoard
@@ -41,9 +42,6 @@ if __name__ == "__main__":
     if debug:
         tf.config.run_functions_eagerly(True)
 
-    IO_IMAGE_SIZE = (512, 512)
-    BANDS = 3
-
     reduce_lr = CustomReduceLROnPlateau(
         monitor="val_loss", factor=0.1, patience=2, min_lr=1e-10
     )
@@ -55,50 +53,13 @@ if __name__ == "__main__":
     )
 
     # initialize loss function
-    loss_object = SemanticLoss(weights_enabled=True)
+
     DEFAULT_DATA = {
-        "input_size": (512, 512),
+        "input_size": MODELS[MODEL_NAME]["input_size"],
         "bands": 3,
-        "output_size": (512, 512),
+        "output_size": MODELS[MODEL_NAME]["output_size"],
         "num_classes": NUM_CLASSES,
     }
-
-    HPARAMS = {
-        # NOTE: loss function arguments
-        "gamma": 1.4,
-        "alpha": 0.25,
-        "window_size": (4, 4),
-        "filter_size": 25,
-        "filter_sigma": 2.5,
-        "k1": 0.06,
-        "k2": 0.02,
-        "weights_enabled": True,
-        # NOTE: arguments for constructing the models forward pass
-        "load_weights": False,
-        "dropouts": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        # NOTE: arguments for compiling the model
-        "optimizer": keras.optimizers.Adam(learning_rate=0.001),
-        "loss": loss_object.categorical_focal_loss,
-        "metrics": ["accuracy"],
-        # NOTE: arguments for training the model
-        "batch_size": 4,
-        "seed": 42,
-        "dataset_size": None,
-        "dataset": None,
-        "epochs": 5,
-        "steps_per_epoch": None,
-        "learning_rate": 1e-5,
-        "validation_dataset": None,
-        "validation_steps": 50,
-        "callbacks": [reduce_lr, tb_callback],
-    }
-    loss_object.set_alpha(HPARAMS["alpha"])
-    loss_object.set_gamma(HPARAMS["gamma"])
-    loss_object.set_window_size(HPARAMS["window_size"])
-    loss_object.set_filter_size(HPARAMS["filter_size"])
-    loss_object.set_filter_sigma(HPARAMS["filter_sigma"])
-    loss_object.set_k1(HPARAMS["k1"])
-    loss_object.set_k2(HPARAMS["k2"])
 
     wrapper = VGG16_UNET(
         (

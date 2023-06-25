@@ -439,7 +439,7 @@ class VGG16_UNET:
         pretrained_url.split("/")[-1], pretrained_url
     )
 
-    def __init__(self, input_shape, output_shape, n_classes, load_weights=False):
+    def __init__(self, input_shape, output_shape, n_classes, load_weights=False,dropouts=[0,0,0,0,0,0,0,0,0]):
         """
         Initializes a VGG16 Unet Segmentation Class
 
@@ -460,6 +460,7 @@ class VGG16_UNET:
             input_shape=input_shape,
             output_shape=output_shape,
             load_weights=load_weights,
+            dropouts=dropouts,
         )
 
     def create_model(
