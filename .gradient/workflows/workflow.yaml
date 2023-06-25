@@ -1,11 +1,11 @@
 'on':
   github:
     branches:
-      only: gradient_workflow
+      only: main
 jobs:
   CloneRepo:
     resources:
-      instance-type: Free-CPU
+      instance-type: C4
     outputs:
       repo:
         type: volume
@@ -14,7 +14,7 @@ jobs:
       url: context.event.github.url
   HelloWorld:
     resources:
-      instance-type: Free-CPU
+      instance-type: C4
     needs:
       - CloneRepo
     inputs:
