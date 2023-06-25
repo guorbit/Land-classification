@@ -51,18 +51,7 @@ tb_callback = TensorBoard(
     write_graph=True,
 )
 
-
-def init_loss() -> SemanticLoss:
-    loss_object = SemanticLoss(n_classes=NUM_CLASSES,weights_enabled=True, weights_path=TRAINING_DATA_PATH)
-    loss_object.set_alpha(HPARAMS["alpha"])
-    loss_object.set_gamma(HPARAMS["gamma"])
-    loss_object.set_window_size(HPARAMS["window_size"])
-    loss_object.set_filter_size(HPARAMS["filter_size"])
-    loss_object.set_filter_sigma(HPARAMS["filter_sigma"])
-    loss_object.set_k1(HPARAMS["k1"])
-    loss_object.set_k2(HPARAMS["k2"])
-    return loss_object
-
+loss_object = SemanticLoss(n_classes=NUM_CLASSES,weights_enabled=True, weights_path=TRAINING_DATA_PATH)
 
 HPARAMS = {
     # NOTE: loss function arguments
@@ -79,7 +68,7 @@ HPARAMS = {
     "dropouts": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     # NOTE: arguments for compiling the model
     "optimizer": keras.optimizers.Adam(learning_rate=0.001), # optimizer
-    "loss": init_loss().categorical_focal_loss,  # loss function
+    "loss": loss_object.categorical_focal_loss,  # loss function
     "metrics": ["accuracy"], # metrics
     # NOTE: arguments for training the model
     "batch_size": 4, # batch size
@@ -93,6 +82,14 @@ HPARAMS = {
     "validation_steps": 50, # validation steps
     "callbacks": [reduce_lr, tb_callback], # callbacks
 }
+
+loss_object.set_alpha(HPARAMS["alpha"])
+loss_object.set_gamma(HPARAMS["gamma"])
+loss_object.set_window_size(HPARAMS["window_size"])
+loss_object.set_filter_size(HPARAMS["filter_size"])
+loss_object.set_filter_sigma(HPARAMS["filter_sigma"])
+loss_object.set_k1(HPARAMS["k1"])
+loss_object.set_k2(HPARAMS["k2"])
 
 MODELS = MODEL_MAP
 
