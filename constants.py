@@ -94,7 +94,7 @@ loss_object.set_k2(HPARAMS["k2"])
 MODELS = MODEL_MAP
 
 IO_DATA = {
-    "input_size": MODELS[MODEL_NAME]["input_size"],
+    "input_size": MODELS[MODEL_NAME]["image_size"],
     "bands": 3,
     "output_size": MODELS[MODEL_NAME]["output_size"],
     "num_classes": NUM_CLASSES,
