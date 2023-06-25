@@ -1,7 +1,7 @@
 'on':
   github:
     branches:
-      only: gradient_workflow
+      only: main
 jobs:
   CloneRepo:
     resources:
