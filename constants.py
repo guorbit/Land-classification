@@ -1,11 +1,21 @@
-import numpy as np
+"""
+Here we define all the constants that are used in the project, 
+including:
+- hyperparameters
+- model names
+- paths to data
+- callbacks
+- loss function
+"""
 import os
-import keras
-from models.loss_constructor import SemanticLoss
-from models.callbacks import CustomReduceLROnPlateau
-from keras.callbacks import TensorBoard
-from map import MODEL_MAP
 
+import keras
+import numpy as np
+from keras.callbacks import TensorBoard
+
+from map import MODEL_MAP
+from models.callbacks import CustomReduceLROnPlateau
+from models.loss_constructor import SemanticLoss
 
 ARCHIVE_TRAIN_DATA_PATH = os.path.join("archive", "train")
 ARCHIVE_VAL_DATA_PATH = os.path.join("archive", "val")
@@ -40,7 +50,9 @@ tb_callback = TensorBoard(
     histogram_freq=1,
     write_graph=True,
 )
-def init_loss()->SemanticLoss:   
+
+
+def init_loss() -> SemanticLoss:
     loss_object = SemanticLoss(weights_enabled=True)
     loss_object.set_alpha(HPARAMS["alpha"])
     loss_object.set_gamma(HPARAMS["gamma"])
@@ -51,34 +63,44 @@ def init_loss()->SemanticLoss:
     loss_object.set_k2(HPARAMS["k2"])
     return loss_object
 
+
 HPARAMS = {
     # NOTE: loss function arguments
-    "gamma": 1.4,
-    "alpha": 0.25,
-    "window_size": (4, 4),
-    "filter_size": 25,
-    "filter_sigma": 2.5,
-    "k1": 0.06,
-    "k2": 0.02,
-    "weights_enabled": True,
+    "gamma": 1.5, # focal loss gamma
+    "alpha": 0.25, # focal loss alpha
+    "window_size": (4, 4), # ssim segmentation number of windows
+    "filter_size": 25, # ssim filter size
+    "filter_sigma": 2.5, # ssim filter sigma
+    "k1": 0.06, # ssim k1
+    "k2": 0.02, # ssim k2
+    "weights_enabled": True, # whether to use weights in loss function
     # NOTE: arguments for constructing the models forward pass
-    "load_weights": False,
+    "load_weights": False, # whether to preload weights
     "dropouts": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     # NOTE: arguments for compiling the model
-    "optimizer": keras.optimizers.Adam(learning_rate=0.001),
-    "loss": init_loss().categorical_focal_loss,
-    "metrics": ["accuracy"],
+    "optimizer": keras.optimizers.Adam(learning_rate=0.001), # optimizer
+    "loss": init_loss().categorical_focal_loss,  # loss function
+    "metrics": ["accuracy"], # metrics
     # NOTE: arguments for training the model
-    "batch_size": 4,
-    "seed": 42,
-    "dataset_size": None,
-    "dataset": None,
-    "epochs": 5,
-    "steps_per_epoch": None,
-    "learning_rate": 1e-5,
-    "validation_dataset": None,
-    "validation_steps": 50,
-    "callbacks": [reduce_lr, tb_callback],
+    "batch_size": 4, # batch size
+    "seed": 42, # random seed
+    "dataset_size": None, # dataset size
+    "dataset": None, # dataset
+    "epochs": 5, # number of epochs
+    "steps_per_epoch": None, # steps per epoch
+    "learning_rate": 1e-5, # learning rate
+    "validation_dataset": None, # validation dataset
+    "validation_steps": 50, # validation steps
+    "callbacks": [reduce_lr, tb_callback], # callbacks
 }
 
 MODELS = MODEL_MAP
+
+IO_DATA = {
+    "input_size": MODELS[MODEL_NAME]["input_size"],
+    "bands": 3,
+    "output_size": MODELS[MODEL_NAME]["output_size"],
+    "num_classes": NUM_CLASSES,
+}
+
+

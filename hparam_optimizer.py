@@ -1,17 +1,21 @@
-from constants import NUM_CLASSES, TRAINING_DATA_PATH, VALIDATION_DATA_PATH
-from models.constructor import VGG16_UNET
-from models.loss_constructor import Semantic_loss_functions
-from models.callbacks import accuracy_drop_callback, CustomReduceLROnPlateau
-from utilities.segmentation_utils.ImagePreprocessor import PreprocessingQueue
-from utilities.segmentation_utils.flowreader import FlowGenerator
 import os
-import tensorflow as tf
-import numpy as np
+
 import keras
 import optuna
+import tensorflow as tf
+from utilities.segmentation_utils.flowreader import FlowGenerator
+from utilities.segmentation_utils.ImagePreprocessor import PreprocessingQueue
+
+from constants import NUM_CLASSES, TRAINING_DATA_PATH, VALIDATION_DATA_PATH
+from models.callbacks import CustomReduceLROnPlateau, accuracy_drop_callback
+from models.constructor import VGG16_UNET
+from models.loss_constructor import Semantic_loss_functions
 
 
 def objective(trial):
+    """
+    The objective function for the optuna hyperparameter optimization.
+    """
     wrapper = VGG16_UNET((512, 512, 3), (256 * 256, 7), NUM_CLASSES)
     model = wrapper.get_model()
 

@@ -1,15 +1,30 @@
-import os
 import math
+import os
+
+import keras.backend as K
+import numpy as np
 import pandas as pd
 import tensorflow as tf
-import numpy as np
+
 from constants import NUM_CLASSES, TRAINING_DATA_PATH
-import tensorflow as tf
-import keras.backend as K
-import keras
 
 
 class SemanticLoss(object):
+    """
+    Class for semantic loss functions
+
+    Attributes
+    ----------
+    :bool weights_enabled: whether to use class weights
+    :float gamma: gamma parameter for focal loss
+    :float alpha: alpha parameter for focal loss
+    :tuple window_size: window size for ssim loss
+    :int filter_size: filter size for ssim loss
+    :float filter_sigma: filter sigma for ssim loss
+    :float k1: k1 parameter for ssim loss
+    :float k2: k2 parameter for ssim loss
+    """
+
     def __init__(
         self,
         weights_enabled=True,
@@ -34,30 +49,89 @@ class SemanticLoss(object):
         print(f"Semantic loss function initialized with {NUM_CLASSES} classes.")
 
     def set_alpha(self, alpha):
+        """
+        Set alpha parameter for focal loss
+
+        Parameters
+        ----------
+        :float alpha: alpha parameter for focal loss
+        """
         self.alpha = alpha
 
     def set_gamma(self, gamma):
+        """
+        Set gamma parameter for focal loss
+
+        Parameters
+        ----------
+        :float gamma: gamma parameter for focal loss
+        """
         self.gamma = gamma
 
     def set_weights(self, weights):
+        """
+        Set class weights
+
+        Parameters
+        ----------
+        :list weights: list of class weights
+        """
         self.weights = weights
 
     def set_window_size(self, window_size):
+        """
+        Set window size for ssim loss
+
+        Parameters
+        ----------
+        :tuple window_size: window size for ssim loss
+        """
         self.window_size = window_size
 
     def set_filter_size(self, filter_size):
+        """
+        Set filter size for ssim loss
+
+        Parameters
+        ----------
+        :int filter_size: filter size for ssim loss
+        """
         self.filter_size = filter_size
 
     def set_filter_sigma(self, filter_sigma):
+        """
+        Set filter sigma for ssim loss
+
+        Parameters
+        ----------
+        :float filter_sigma: filter sigma for ssim loss
+        """
         self.filter_sigma = filter_sigma
 
     def set_k1(self, k1):
+        """
+        Set k1 parameter for ssim loss
+
+        Parameters
+        ----------
+        :float k1: k1 parameter for ssim loss
+        """
         self.k1 = k1
 
     def set_k2(self, k2):
+        """
+        Set k2 parameter for ssim loss
+
+        Parameters
+        ----------
+        :float k2: k2 parameter for ssim loss
+        """
         self.k2 = k2
 
     def load_weights(self):
+        """
+        Load class weights from csv file
+        """
         weights = pd.read_csv(
             os.path.join(TRAINING_DATA_PATH, "distribution.csv"), header=None
         )
@@ -75,6 +149,18 @@ class SemanticLoss(object):
 
     @tf.function
     def categorical_focal_loss(self, y_true, y_pred):
+        """
+        Calculate focal loss separate for each class
+
+        Parameters
+        ----------
+        :tensor y_true: ground truth mask
+        :tensor y_pred: predicted mask
+
+        Returns
+        -------
+        :tensor loss: focal loss
+        """
         gamma = self.gamma
         alpha = self.alpha
         y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
@@ -92,6 +178,15 @@ class SemanticLoss(object):
     def categorical_jackard_loss(self, y_true, y_pred):
         """
         Jackard loss to minimize. Pass to model as loss during compile statement
+
+        Parameters
+        ----------
+        :tensor y_true: ground truth mask
+        :tensor y_pred: predicted mask
+
+        Returns
+        -------
+        :tensor loss: jackard loss
         """
 
         intersection = K.sum(K.abs(y_true * y_pred), axis=(-3, -2))
@@ -101,10 +196,20 @@ class SemanticLoss(object):
         return 1 - jac
 
     @tf.function
-    def categorical_ssim_loss(self, y_true, y_pred, window_size=(4, 4)):
+    def categorical_ssim_loss(self, y_true, y_pred):
         """
         SSIM loss to minimize. Pass to model as loss during compile statement
+
+        Parameters
+        ----------
+        :tensor y_true: ground truth mask
+        :tensor y_pred: predicted mask
+
+        Returns
+        -------
+        :tensor loss: ssim loss
         """
+        window_size = self.window_size
         tile_size = y_true.shape[1] // window_size[0]
         # calculate ssim for each channel seperately
         y_true = tf.reshape(
@@ -159,6 +264,16 @@ class SemanticLoss(object):
     def ssim_loss(self, y_true, y_pred, window_size=(4, 4)):
         """
         SSIM loss to minimize. Pass to model as loss during compile statement
+
+        Parameters
+        ----------
+        :tensor y_true: ground truth mask
+        :tensor y_pred: predicted mask
+        :tuple window_size: window size for ssim loss
+
+        Returns
+        -------
+        :tensor loss: ssim loss
         """
         # calculate ssim for each channel seperately
         tile_size = y_true.shape[1] // window_size[0]
@@ -221,6 +336,7 @@ class SemanticLoss(object):
 
     @tf.function
     def ssim_loss_combined(self, y_true, y_pred):
+  
         y_true = tf.argmax(y_true, axis=-1)
         y_pred = tf.argmax(y_pred, axis=-1)
 
@@ -245,14 +361,24 @@ class SemanticLoss(object):
         """
         Hybrid loss to minimize. Pass to model as loss during compile statement.
         It is a combination of jackard loss, focal loss and ssim loss.
+
+        Parameters
+        ----------
+        :tensor y_true: ground truth mask
+        :tensor y_pred: predicted mask
+        :list weights: list of class weights
+
+        Returns
+        -------
+        :tensor loss: hybrid loss
         """
         if weights is None:
             weights = [1 for i in range(NUM_CLASSES)]
         jackard_loss = self.categorical_jackard_loss(y_true, y_pred)
         focal_loss = self.categorical_focal_loss(y_true, y_pred)
-        # ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
+        ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
 
-        jf = focal_loss + jackard_loss
+        jf = focal_loss + jackard_loss + ssim_loss
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))

@@ -1,13 +1,25 @@
-import tensorflow as tf
-import numpy as np
-from models.loss_constructor import Semantic_loss_functions
-from constants import TRAINING_DATA_PATH, NUM_CLASSES, TEST_DATA_PATH,VALIDATION_DATA_PATH
-from utilities.segmentation_utils.ImagePreprocessor import PreprocessingQueue, random_flip_left_right, random_flip_up_down
-from utilities.segmentation_utils.flowreader import FlowGenerator, FlowGeneratorExperimental
+"""
+This file is used to debug the code. It is not used in the training process.
+"""
 import os
+
 import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+from utilities.segmentation_utils.flowreader import (FlowGenerator,
+                                                     FlowGeneratorExperimental)
+from utilities.segmentation_utils.ImagePreprocessor import (
+    PreprocessingQueue, random_flip_left_right, random_flip_up_down)
+
+from constants import (NUM_CLASSES, TEST_DATA_PATH, TRAINING_DATA_PATH,
+                       VALIDATION_DATA_PATH)
+from models.loss_constructor import Semantic_loss_functions
+
 
 def loss_debug():
+    """
+    Function used to debug the ms ssim  loss function.
+    """
     # Define input images
     img1 = np.random.rand(16, 256, 256, 7)
     img2 = np.random.rand(16, 256, 256, 7)
@@ -31,6 +43,9 @@ def loss_debug():
     print("ssim loss:", returned)
 
 def reader_debug():
+    """
+    Function used to debug the flowreader.
+    """
     seed = 42
     image_queue = PreprocessingQueue(
         queue=[
@@ -81,6 +96,9 @@ def reader_debug():
     
 
 def visualize_sample(image, mask):
+    """
+    helper function to visualize a sample
+    """
     plt.subplot(1, 2, 1)
     plt.imshow(image)
     plt.title("Image")

@@ -1,3 +1,7 @@
+"""
+generate a map of model name to model object
+"""
+
 # from keras_segmentation.models.unet import vgg_unet, resnet50_unet, mobilenet_unet
 # from keras_segmentation.models.segnet import (
 #     vgg_segnet,

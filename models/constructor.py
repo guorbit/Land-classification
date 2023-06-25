@@ -1,3 +1,7 @@
+"""
+Custom model generator class
+"""
+
 import tensorflow as tf
 
 import itertools
@@ -19,7 +23,6 @@ from keras.layers import (
     ZeroPadding2D,
     UpSampling2D,
 )
-import tensorflow_addons as tfa
 
 from keras.models import Model
 from utilities.segmentation_utils.flowreader import FlowGenerator
@@ -256,6 +259,9 @@ class ModelGenerator_old:
 
 
 class ModelGenerator(Model):
+    """
+    Custom model class with custom training loop
+    """
     name = None
     n_classes = None
     base_model = None
@@ -277,9 +283,15 @@ class ModelGenerator(Model):
         self.name = name
 
     def get_backup_logs(self):
+        """
+        returns the eval metric values from the model
+        """
         return self.backup_logs
 
     def compile(self, *args, **kwargs):
+        """
+        Compiles the model
+        """
         self.loss_fn = kwargs["loss"]
         self.optimizer = kwargs["optimizer"]
         kwargs["metrics"] = kwargs["metrics"] + [
@@ -293,10 +305,16 @@ class ModelGenerator(Model):
         super(ModelGenerator, self).compile(*args, **kwargs)
 
     def save(self, path):
+        """
+        saves the model
+        """
         super(ModelGenerator, self).save(path)
 
     @tf.function
     def train_step(self, data):
+        """
+        Custom training step, capable of handling weights
+        """
         if len(data) == 3:
             x, y, w = data
         else:
@@ -327,6 +345,9 @@ class ModelGenerator(Model):
 
     @tf.function
     def eval_step(self, data):
+        """
+        Custom evaluation step
+        """
         x, y = data
         y = tf.convert_to_tensor(y)
 
@@ -354,6 +375,9 @@ class ModelGenerator(Model):
         callbacks=[],
         enable_tensorboard=False,
     ):
+        """
+        Custom training loop
+        """
         self.optimizer.learning_rate = learning_rate
         self.val_data = validation_dataset
         logs = {}
@@ -429,6 +453,9 @@ class ModelGenerator(Model):
 
 
 class VGG16_UNET:
+    """
+    Custom class defining a VGG16 Unet forwad pass
+    """
     pretrained_url = (
         "https://github.com/fchollet/deep-learning-models/"
         "releases/download/v0.1/"
@@ -655,6 +682,9 @@ class VGG16_UNET:
 
 
 class PyramidPoolingModule(Layer):
+    """
+    Custom implementation of a pyramid pooling module
+    """
     def __init__(
         self, pool_sizes, kernels, num_channels, data_format="channels_last", **kwargs
     ):
@@ -709,8 +739,11 @@ class PyramidPoolingModule(Layer):
         )
         return config
 
-
+#! Note the blocks below are not tested yet
 class ConvolutionalBlock(Layer):
+    """
+    Initilizes a convolutional block for a vgg unet
+    """
     def __init__(
         self,
         num_filters,
@@ -756,7 +789,6 @@ class ConvolutionalBlock(Layer):
             }
         )
         return config
-
 
 class UnetDecoderBlock(Layer):
     def __init__(self, num_filters, kernel_size, data_format="channels_last", **kwargs):

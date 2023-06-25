@@ -1,6 +1,10 @@
+"""
+Package for custom metrics
+"""
+import keras
 import tensorflow as tf
 from sklearn.metrics import f1_score
-import keras
+
 
 class LossMetric(keras.metrics.Metric):
     def __init__(self, **kwargs):
@@ -15,6 +19,9 @@ class LossMetric(keras.metrics.Metric):
         pass
 
 class F1Metric(keras.metrics.Metric):
+    """
+    F1 metric for keras model
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
