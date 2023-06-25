@@ -133,5 +133,9 @@ dmypy.json
 /exported_models/
 archive.lnk
 
+# tensorboard logfiles
+/logs/
+/tb_log/
+
 colab_notebook.ipynb
 
