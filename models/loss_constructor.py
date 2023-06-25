@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from constants import NUM_CLASSES, TRAINING_DATA_PATH
-
 
 class SemanticLoss(object):
     """
@@ -16,37 +14,28 @@ class SemanticLoss(object):
     Attributes
     ----------
     :bool weights_enabled: whether to use class weights
-    :float gamma: gamma parameter for focal loss
-    :float alpha: alpha parameter for focal loss
-    :tuple window_size: window size for ssim loss
-    :int filter_size: filter size for ssim loss
-    :float filter_sigma: filter sigma for ssim loss
-    :float k1: k1 parameter for ssim loss
-    :float k2: k2 parameter for ssim loss
     """
 
     def __init__(
         self,
+        n_classes,
         weights_enabled=True,
-        gamma=1.4,
-        alpha=0.25,
-        window_size=(4, 4),
-        filter_size=25,
-        filter_sigma=2.5,
-        k1=0.06,
-        k2=0.02,
+        weights_path=None,
     ):
-        self.gamma = gamma
-        self.alpha = alpha
-        self.window_size = window_size
-        self.filter_size = filter_size
-        self.filter_sigma = filter_sigma
-        self.k1 = k1
-        self.k2 = k2
-        self.weights = np.ones((NUM_CLASSES,), dtype=np.float32)
+        
+        self.n_classes = n_classes
+        self.alpha = 0.25
+        self.gamma = 1.5
+        self.window_size = (4, 4)
+        self.filter_size = 2
+        self.filter_sigma = 1.5
+        self.k1 = 0.01
+        self.k2 = 0.03
+
+        self.weights = np.ones((n_classes,), dtype=np.float32)
         if weights_enabled:
-            self.load_weights()
-        print(f"Semantic loss function initialized with {NUM_CLASSES} classes.")
+            self.load_weights(weights_path)
+        print(f"Semantic loss function initialized with {n_classes} classes.")
 
     def set_alpha(self, alpha):
         """
@@ -128,20 +117,19 @@ class SemanticLoss(object):
         """
         self.k2 = k2
 
-    def load_weights(self):
+    def load_weights(self,path):
         """
         Load class weights from csv file
         """
         weights = pd.read_csv(
-            os.path.join(TRAINING_DATA_PATH, "distribution.csv"), header=None
+            os.path.join(path, "distribution.csv"), header=None
         )
-        n = len(os.listdir(os.path.join(TRAINING_DATA_PATH, "x")))
-        for i in range(NUM_CLASSES):
-            # tf-idf like calculation
-            # self.weights[i] = math.log10(weights.iloc[i, 1]) * math.log10(n/weights.iloc[i, 2])
+
+        for i in range(self.n_classes):
+            
             self.weights[i] = math.log2(weights.iloc[i, 1])
         self.weights = 1 - tf.nn.softmax(self.weights)
-        # self.weights = 1 - tf.nn.softmax(self.weights - np.mean(self.weights))
+
         join_str = ", "
         print(
             f"Class weights initialized as: {join_str.join([str(round(x,4)) for x in K.eval(self.weights)])}"
@@ -373,7 +361,7 @@ class SemanticLoss(object):
         :tensor loss: hybrid loss
         """
         if weights is None:
-            weights = [1 for i in range(NUM_CLASSES)]
+            weights = [1 for i in range(self.n_classes)]
         jackard_loss = self.categorical_jackard_loss(y_true, y_pred)
         focal_loss = self.categorical_focal_loss(y_true, y_pred)
         ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
