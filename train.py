@@ -27,18 +27,18 @@ from constants import (
     TRAINING_DATA_PATH,
     VALIDATION_DATA_PATH,
 )
-from models.constructor import VGG16_UNET
+from models.constructor import VGG16_UNET, VGG_NANO_UNET
 
 #!Note: The above package is not available in the repo. It is a custom package for reading data from a folder and generating batches of data.
 #!Note: it is available under guorbit/utilities on github.
 
 
-def main():
+def main(hparams, save = True, return_logs = False):
     """
     The main function of the train script. Envoked through the command line.
     """
     # define forward pass
-    wrapper = VGG16_UNET(
+    wrapper = VGG_NANO_UNET(
         (
             IO_DATA["input_size"][0],
             IO_DATA["input_size"][1],
@@ -47,13 +47,14 @@ def main():
         (IO_DATA["output_size"][0], IO_DATA["output_size"][0], NUM_CLASSES),
         NUM_CLASSES,
         load_weights=False,
-        dropouts=HPARAMS["dropouts"],
+        dropouts=hparams["dropouts"],
     )
     model = wrapper.get_model()
+    print("MODEL NAME:",model.name)
     model.compile(
-        optimizer=HPARAMS["optimizer"],
-        loss=HPARAMS["loss"],
-        metrics=HPARAMS["metrics"],
+        optimizer=hparams["optimizer"],
+        loss=hparams["loss"],
+        metrics=hparams["metrics"],
     )
 
     # initialize image preprocessing queues
@@ -67,11 +68,11 @@ def main():
             # tf.image.random_hue,
         ],
         arguments=[
-            {"seed": HPARAMS["seed"]},
-            {"seed": HPARAMS["seed"]},
-            {"max_delta": 0.2, "seed": HPARAMS["seed"]},
-            {"lower": 0.8, "upper": 1.2, "seed": HPARAMS["seed"]},
-            {"lower": 0.8, "upper": 1.2, "seed": HPARAMS["seed"]},
+            {"seed": hparams["seed"]},
+            {"seed": hparams["seed"]},
+            {"max_delta": 0.2, "seed": hparams["seed"]},
+            {"lower": 0.8, "upper": 1.2, "seed": hparams["seed"]},
+            {"lower": 0.8, "upper": 1.2, "seed": hparams["seed"]},
             # {"max_delta": 0.2, "seed": seed},
         ],
     )
@@ -81,8 +82,8 @@ def main():
             random_flip_up_down,
         ],
         arguments=[
-            {"seed": HPARAMS["seed"]},
-            {"seed": HPARAMS["seed"]},
+            {"seed": hparams["seed"]},
+            {"seed": hparams["seed"]},
         ],
     )
 
@@ -96,7 +97,7 @@ def main():
         "preprocessing_enabled": True,
         "channel_mask": [True, True, True],
         "num_classes": NUM_CLASSES,
-        "batch_size": HPARAMS["batch_size"],
+        "batch_size": hparams["batch_size"],
         "read_weights": False,
         "weights_path": os.path.join(TRAINING_DATA_PATH, "weights.csv"),
     }
@@ -109,40 +110,61 @@ def main():
         "preprocessing_enabled": False,
         "channel_mask": [True, True, True],
         "num_classes": NUM_CLASSES,
-        "batch_size": HPARAMS["batch_size"],
+        "batch_size": hparams["batch_size"],
     }
 
     # initialize dataset iterators
-    HPARAMS["dataset"] = FlowGeneratorExperimental(**reader_args)
-    HPARAMS["dataset"].set_preprocessing_pipeline(image_queue, mask_queue)
-    HPARAMS["validation_dataset"] = FlowGeneratorExperimental(**val_reader_args)
-    HPARAMS["dataset_size"] = len(HPARAMS["dataset"])
+    hparams["dataset"] = FlowGeneratorExperimental(**reader_args)
+    hparams["dataset"].set_preprocessing_pipeline(image_queue, mask_queue)
+    hparams["validation_dataset"] = FlowGeneratorExperimental(**val_reader_args)
+    hparams["dataset_size"] = len(hparams["dataset"])
 
     # set training arguments
     training_args = {
-        "dataset": HPARAMS["dataset"],
-        "batch_size": HPARAMS["batch_size"],
-        "epochs": HPARAMS["epochs"],
-        "steps_per_epoch": HPARAMS["dataset_size"],
-        "learning_rate": HPARAMS["learning_rate"],
-        "validation_dataset": HPARAMS["validation_dataset"],
-        "validation_steps": HPARAMS["validation_steps"],
-        "callbacks": HPARAMS["callbacks"],
+        "dataset": hparams["dataset"],
+        "batch_size": hparams["batch_size"],
+        "epochs": hparams["epochs"],
+        "steps_per_epoch": hparams["dataset_size"],
+        "learning_rate": hparams["learning_rate"],
+        "validation_dataset": hparams["validation_dataset"],
+        "validation_steps": hparams["validation_steps"],
+        "callbacks": hparams["callbacks"],
     }
 
     # train model
-    model.summary()
+    if not return_logs:
+        model.summary()
     model.train(
         **training_args,
         enable_tensorboard=True,
     )
 
+    if save:
     # save model
-    if not os.path.isdir(MODEL_FOLDER):
-        os.mkdir(MODEL_FOLDER)
-    model.save(
-        os.path.join(MODEL_FOLDER, MODEL_NAME + "_" + str(MODEL_ITERATION) + ".h5")
-    )
+        if not os.path.isdir(MODEL_FOLDER):
+            os.mkdir(MODEL_FOLDER)
+        model.save(
+            os.path.join(MODEL_FOLDER, MODEL_NAME + "_" + str(MODEL_ITERATION) + ".h5")
+        )
+    if return_logs:
+        return model.get_backup_logs()
+    else:
+        from hparam_snapshot import write_to_database, get_iteration
+        logs = model.get_backup_logs()
+        iteratetion = get_iteration(model.name)
+
+        write_to_database(
+            hparams,
+            model.name,
+            iteratetion,
+            logs["val_accuracy"],
+            logs["val_recall"],
+            logs["val_precision"],
+            logs["val_loss"],
+        )
+
+
+
 
 
 if __name__ == "__main__":
@@ -156,4 +178,4 @@ if __name__ == "__main__":
     if debug:
         tf.config.run_functions_eagerly(True)
 
-    main()
+    main(HPARAMS)

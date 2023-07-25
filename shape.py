@@ -171,48 +171,50 @@ def class_tfidf_vectorizer(path):
 
 
 if __name__ == "__main__":
-    # sizes_to_cut = [1024]
-    # stages = [
-    #     [ARCHIVE_TRAIN_DATA_PATH, TRAINING_DATA_PATH],
-    #     [ARCHIVE_VAL_DATA_PATH, VALIDATION_DATA_PATH],
-    #     [ARCHIVE_TEST_DATA_PATH, TEST_DATA_PATH],
-    # ]
+    sizes_to_cut = [1024]
+    stages = [
+        [ARCHIVE_TRAIN_DATA_PATH, TRAINING_DATA_PATH],
+        [ARCHIVE_VAL_DATA_PATH, VALIDATION_DATA_PATH],
+        [ARCHIVE_TEST_DATA_PATH, TEST_DATA_PATH],
+    ]
 
-    # for stage in stages:
-    #     x_raw = os.path.join(stage[0], "x")
-    #     y_raw = os.path.join(stage[0], "y")
+    for stage in stages:
+        x_raw = os.path.join(stage[0], "x")
+        y_raw = os.path.join(stage[0], "y")
 
-    #     x = os.path.join(stage[1], "x", "img")
-    #     y = os.path.join(stage[1], "y", "img")
-    #     for size in sizes_to_cut:
-    #         print(f"Cutting images to size {size}")
-    #         cut_ims_in_directory(
-    #             x_raw,
-    #             x,
-    #             (size, size),
-    #         )
-    #         cut_ims_in_directory(
-    #             y_raw,
-    #             y,
-    #             (size, size),
-    #             mask=True,
-    #             preprocess=True,
-    #         )
+        x = os.path.join(stage[1], "x", "img")
+        y = os.path.join(stage[1], "y", "img")
+        for size in sizes_to_cut:
+            print(f"Cutting images to size {size}")
+            cut_ims_in_directory(
+                x_raw,
+                x,
+                (size, size),
+                format="tiff",
+            )
+            cut_ims_in_directory(
+                y_raw,
+                y,
+                (size, size),
+                mask=True,
+                preprocess=True,
+                format="tiff",
+            )
 
-    # print("Calculating distribution of classes in training data")
-    # files = os.listdir(os.path.join(TRAINING_DATA_PATH, "y", "img"))
-    # distribution, df = get_distribution_seg(
-    #     os.path.join(TRAINING_DATA_PATH, "y", "img"), files
-    # )
-    # print("Distribution:")
+    print("Calculating distribution of classes in training data")
+    files = os.listdir(os.path.join(TRAINING_DATA_PATH, "y", "img"))
+    distribution, df = get_distribution_seg(
+        os.path.join(TRAINING_DATA_PATH, "y", "img"), files
+    )
+    print("Distribution:")
 
-    # for key, value in distribution.items():
-    #     print(f"{key}: {value}, {df[key]}")
+    for key, value in distribution.items():
+        print(f"{key}: {value}, {df[key]}")
 
-    # # save distribution to csv
-    # with open(os.path.join(TRAINING_DATA_PATH, "distribution.csv"), "w") as f:
-    #     for key in distribution.keys():
-    #         f.write("%s,%s,%s\n" % (key, distribution[key], df[key]))
+    # save distribution to csv
+    with open(os.path.join(TRAINING_DATA_PATH, "distribution.csv"), "w") as f:
+        for key in distribution.keys():
+            f.write("%s,%s,%s\n" % (key, distribution[key], df[key]))
 
     # get tf-idf weights
     files, weights = class_tfidf_vectorizer(TRAINING_DATA_PATH)

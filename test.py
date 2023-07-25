@@ -9,17 +9,18 @@ from constants import (
     MODEL_ITERATION,
     LABEL_MAP,
     MODEL_FOLDER,
+    TRAINING_DATA_PATH,
 )
 import numpy as np
 import os
 import tensorflow as tf
 from models.loss_constructor import SemanticLoss
-from models.constructor import ModelGenerator,PyramidPoolingModule
+from models.constructor import ModelGenerator,PyramidPoolingModule, UnetNanoConvBlock
 from PIL import Image
 
 if __name__ == "__main__":
     with tf.device("/device:GPU:0"):
-        loss = Semantic_loss_functions()
+        loss = SemanticLoss(n_classes=NUM_CLASSES,weights_enabled=False)
       
         print("Loading model " + MODEL_NAME + "_" + str(MODEL_ITERATION))
         model = load_model(
@@ -31,7 +32,7 @@ if __name__ == "__main__":
                 "categorical_ssim_loss": loss.categorical_ssim_loss,
                 "ModelGenerator": ModelGenerator,
                 "PyramidPoolingModule":PyramidPoolingModule,
-
+                "UnetNanoConvBlock":UnetNanoConvBlock,
             },
         )
         model.training = False
@@ -73,9 +74,11 @@ if __name__ == "__main__":
             for i in range(MODELS[MODEL_NAME]["output_size"][0]):
                 for j in range(MODELS[MODEL_NAME]["output_size"][1]):
                     pred_rgb[i, j, :] = LABEL_MAP[first_prediction[i, j]]
+    
             for i in range(masks.shape[1]):
                 for j in range(masks.shape[2]):
-                    new_mask[k, i, j, :] = LABEL_MAP[masks[k, i, j]]
+                    encoded = LABEL_MAP[masks[k, i, j]]
+                    new_mask[k, i, j, :] = encoded
 
             export_mode = False
             axarr[0].imshow(images[k])
