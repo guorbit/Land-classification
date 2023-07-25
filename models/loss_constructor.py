@@ -127,7 +127,7 @@ class SemanticLoss(object):
 
         for i in range(self.n_classes):
             
-            self.weights[i] = math.log2(weights.iloc[i, 1])
+            self.weights[i] = math.log(weights.iloc[i, 1])
         self.weights = 1 - tf.nn.softmax(self.weights)
 
         join_str = ", "
@@ -364,10 +364,10 @@ class SemanticLoss(object):
             weights = [1 for i in range(self.n_classes)]
         jackard_loss = self.categorical_jackard_loss(y_true, y_pred)
         focal_loss = self.categorical_focal_loss(y_true, y_pred)
-        ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
+        # ssim_loss = self.categorical_ssim_loss(y_true, y_pred)
 
-        jf = focal_loss + jackard_loss + ssim_loss
+        jf = focal_loss
 
         # tf.print(type(jd))
         # tf.print(type(ssim_loss))
-        return jf * self.weights
+        return jf 

@@ -55,8 +55,8 @@ loss_object = SemanticLoss(n_classes=NUM_CLASSES,weights_enabled=True, weights_p
 
 HPARAMS = {
     # NOTE: loss function arguments
-    "gamma": 1.5, # focal loss gamma
-    "alpha": 0.25, # focal loss alpha
+    "gamma": 1.85, # focal loss gamma
+    "alpha": 0.4, # focal loss alpha
     "window_size": (4, 4), # ssim segmentation number of windows
     "filter_size": 25, # ssim filter size
     "filter_sigma": 2.5, # ssim filter sigma
@@ -65,17 +65,17 @@ HPARAMS = {
     "weights_enabled": True, # whether to use weights in loss function
     # NOTE: arguments for constructing the models forward pass
     "load_weights": False, # whether to preload weights
-    "dropouts": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "dropouts": [0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.1],
     # NOTE: arguments for compiling the model
-    "optimizer": keras.optimizers.Adam(learning_rate=0.001), # optimizer
-    "loss": loss_object.categorical_focal_loss,  # loss function
+    "optimizer": keras.optimizers.Adam(learning_rate=0.0001), # optimizer
+    "loss": loss_object.hybrid_loss,  # loss function
     "metrics": ["accuracy"], # metrics
     # NOTE: arguments for training the model
-    "batch_size": 4, # batch size
+    "batch_size": 8, # batch size
     "seed": 42, # random seed
     "dataset_size": None, # dataset size
     "dataset": None, # dataset
-    "epochs": 5, # number of epochs
+    "epochs": 10, # number of epochs
     "steps_per_epoch": None, # steps per epoch
     "learning_rate": 1e-5, # learning rate
     "validation_dataset": None, # validation dataset

@@ -139,3 +139,5 @@ archive.lnk
 
 colab_notebook.ipynb
 
+*.db
+

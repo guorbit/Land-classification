@@ -262,6 +262,7 @@ class ModelGenerator(Model):
     """
     Custom model class with custom training loop
     """
+
     name = None
     n_classes = None
     base_model = None
@@ -456,6 +457,7 @@ class VGG16_UNET:
     """
     Custom class defining a VGG16 Unet forwad pass
     """
+
     pretrained_url = (
         "https://github.com/fchollet/deep-learning-models/"
         "releases/download/v0.1/"
@@ -466,7 +468,14 @@ class VGG16_UNET:
         pretrained_url.split("/")[-1], pretrained_url
     )
 
-    def __init__(self, input_shape, output_shape, n_classes, load_weights=False,dropouts=[0,0,0,0,0,0,0,0,0]):
+    def __init__(
+        self,
+        input_shape,
+        output_shape,
+        n_classes,
+        load_weights=False,
+        dropouts=[0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ):
         """
         Initializes a VGG16 Unet Segmentation Class
 
@@ -681,10 +690,200 @@ class VGG16_UNET:
         return self.base_model
 
 
+class VGG_NANO_UNET:
+    """
+    Custom class defining a VGG16 Unet forwad pass
+    """
+
+    pretrained_url = (
+        "https://github.com/fchollet/deep-learning-models/"
+        "releases/download/v0.1/"
+        "vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    )
+    pretrained_url_top = "https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    VGG_Weights_path = tf.keras.utils.get_file(
+        pretrained_url.split("/")[-1], pretrained_url
+    )
+
+    def __init__(
+        self,
+        input_shape,
+        output_shape,
+        n_classes,
+        load_weights=False,
+        dropouts=[0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ):
+        """
+        Initializes a VGG16 Unet Segmentation Class
+
+        Parameters
+        ----------
+        input_shape (tuple): Input shape of the image
+        n_classes (int): Number of classes to be segmented
+
+        Returns
+        -------
+        None
+        """
+        self.n_classes = n_classes
+        self.IMAGE_ORDERING = "channels_last"
+
+        print("Initializing VGG16 Unet")
+        self.create_model(
+            input_shape=input_shape,
+            output_shape=output_shape,
+            load_weights=load_weights,
+            dropouts=dropouts,
+        )
+
+    def create_model(
+        self,
+        input_shape,
+        output_shape,
+        load_weights=False,
+        dropouts=[0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ):
+        """
+        Initializes a VGG16 Unet Segmentation model forward pass definition
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        # fmt: off
+        MERGE_AXIS = -1
+            
+        img_input = Input(shape=input_shape)
+        
+        x = tf.keras.applications.vgg16.preprocess_input(img_input)
+        x = UnetNanoConvBlock(64, (3, 3), padding='same', data_format=self.IMAGE_ORDERING)(x)
+        f1 = x
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+        x = Dropout(dropouts[0])(x)
+        
+        
+        # Block 2
+        x = UnetNanoConvBlock(128, (3, 3), padding='same', data_format=self.IMAGE_ORDERING)(x)
+        f2 = x
+
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+        x = Dropout(dropouts[1])(x)
+        
+
+        # Block 3
+        x = UnetNanoConvBlock(256, (3, 3), padding='same', data_format=self.IMAGE_ORDERING)(x)
+        f3 = x
+        
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+        x = Dropout(dropouts[2])(x)
+        
+
+        # Block 4
+        x = UnetNanoConvBlock(512, (3, 3), padding='same', data_format=self.IMAGE_ORDERING)(x)
+        f4 = x
+
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_avg_pool', data_format=self.IMAGE_ORDERING)(x)
+        x = Dropout(dropouts[3])(x)
+        
+        # Block 5 pyramid pooling block
+
+        x = UnetNanoConvBlock(512, (3, 3), padding='same', data_format=self.IMAGE_ORDERING)(x)
+        f5 = x
+
+
+        vgg = ModelGenerator("vgg",inputs = img_input,outputs = x)
+
+        if load_weights:   
+            vgg.load_weights(self.VGG_Weights_path,by_name=True,skip_mismatch=True)
+
+        self.base_model = vgg
+        #vgg.learning_rate = 0.001
+        self.levels = [f1, f2, f3, f4]
+        
+        # vgg.trainable = False
+
+        # for layer in vgg.layers[-4:None]:
+        #     print("Setting layer trainable: ", layer)
+        #     layer.trainable = True
+        
+        f5 = PyramidPoolingModule([1,4,8],[(1,1),(3,3),(3,3)],num_channels=self.n_classes)(f5)
+
+        o = f5
+
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        
+        o = (Conv2D(512, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+
+        o = (Dropout(dropouts[4]))(o)
+
+        o = (UpSampling2D((2, 2),data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate(axis=MERGE_AXIS)([o, f4]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(256, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(dropouts[5]))(o)
+
+        o = (UpSampling2D((2, 2),data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate(axis=MERGE_AXIS)([o, f3]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(128, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(dropouts[6]))(o)
+
+        o = (UpSampling2D((2, 2),data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate(axis=MERGE_AXIS)([o, f2]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(64, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(dropouts[7]))(o)
+
+        o = (UpSampling2D((2, 2),data_format=self.IMAGE_ORDERING))(o)
+        o = (Concatenate(axis=MERGE_AXIS)([o, f1]))
+        o = (ZeroPadding2D((1, 1), data_format=self.IMAGE_ORDERING))(o)
+        o = (Conv2D(32, (3, 3), padding='valid', data_format=self.IMAGE_ORDERING))(o)
+        o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
+        o = (Dropout(dropouts[8]))(o)
+
+        o = Conv2D(self.n_classes, (1, 1), padding='same',name="logit_layer", data_format=self.IMAGE_ORDERING)(o)
+        o_shape = Model(img_input, o).output_shape  
+        # o = (Reshape((o_shape[1]*o_shape[2], -1)))(o)  
+        # o = (Permute((2, 1)))(o)
+        o = (Activation('softmax'))(o)
+
+        
+        model = ModelGenerator("vgg_nano_unet", inputs = img_input, outputs = o)
+        model.levels = [f1, f2, f3, f4]
+        
+        model.outputWidth = o_shape[2]
+        model.outputHeight = o_shape[1]
+        #model.learning_rate = 0.001
+        self.model = model
+
+        # fmt: on
+
+    def get_model(self):
+        return self.model
+
+    def get_base_model(self):
+        return self.base_model
+
+
 class PyramidPoolingModule(Layer):
     """
     Custom implementation of a pyramid pooling module
     """
+
     def __init__(
         self, pool_sizes, kernels, num_channels, data_format="channels_last", **kwargs
     ):
@@ -739,56 +938,44 @@ class PyramidPoolingModule(Layer):
         )
         return config
 
+
 #! Note the blocks below are not tested yet
-class ConvolutionalBlock(Layer):
-    """
-    Initilizes a convolutional block for a vgg unet
-    """
-    def __init__(
-        self,
-        num_filters,
-        kernel_size,
-        n_conv: int,
-        dilation_rate=1,
-        data_format="channels_last",
-        **kwargs,
-    ):
-        super(ConvolutionalBlock, self).__init__(**kwargs)
+class UnetNanoConvBlock(Layer):
+    def __init__(self, num_filters, kernel_size,padding, data_format="channels_last", **kwargs):
+        super(UnetNanoConvBlock, self).__init__(**kwargs)
         self.num_filters = num_filters
         self.kernel_size = kernel_size
-        self.dilation_rate = dilation_rate
+        self.padding = padding
         self.data_format = data_format
-        self.n_conv = n_conv
 
     def build(self, input_shape):
         self.conv_layer = Conv2D(
             self.num_filters,
             self.kernel_size,
-            padding="same",
+            padding=self.padding,
             data_format=self.data_format,
-            dilation_rate=self.dilation_rate,
         )
         self.batch_norm_layer = BatchNormalization()
         self.activation_layer = ReLU()
 
     def call(self, x):
-        for i in range(self.n_conv):
-            x = self.conv_layer(x)
-            x = self.batch_norm_layer(x)
-            x = self.activation_layer(x)
+        x = self.conv_layer(x)
+        x = self.batch_norm_layer(x)
+        x = self.activation_layer(x)
         return x
 
     def get_config(self):
-        config = super(ConvolutionalBlock, self).get_config()
+        config = super(UnetNanoConvBlock, self).get_config()
         config.update(
             {
                 "num_filters": self.num_filters,
                 "kernel_size": self.kernel_size,
-                "dilation_rate": self.dilation_rate,
+                "padding": self.padding,
                 "data_format": self.data_format,
             }
         )
         return config
+
 
 class UnetDecoderBlock(Layer):
     def __init__(self, num_filters, kernel_size, data_format="channels_last", **kwargs):
